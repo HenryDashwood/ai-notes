@@ -6,9 +6,12 @@ permissions:
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
   workflow_dispatch:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    steps: [uses: answerdotai/workflows/quarto-ghp3@master]
+    steps:
+      - uses: answerdotai/workflows/quarto-ghp3@master
+        with:
+          version: "3.13"

@@ -10,5 +10,11 @@ d = { 'settings': {'branch': 'main', 'doc_baseurl': '/', 'doc_host': '', 'git_ur
                                                                                      'ai_notes/tokenisation/bpe.py'),
                                            'ai_notes.tokenisation.bpe.BPE.encode': ( 'tokenisation/byte_pair_encoding_from_scratch.html#bpe.encode',
                                                                                      'ai_notes/tokenisation/bpe.py'),
+                                           'ai_notes.tokenisation.bpe.BPE.get_pair_counts': ( 'tokenisation/byte_pair_encoding_from_scratch.html#bpe.get_pair_counts',
+                                                                                              'ai_notes/tokenisation/bpe.py'),
+                                           'ai_notes.tokenisation.bpe.BPE.get_tokens': ( 'tokenisation/byte_pair_encoding_from_scratch.html#bpe.get_tokens',
+                                                                                         'ai_notes/tokenisation/bpe.py'),
+                                           'ai_notes.tokenisation.bpe.BPE.merge_pair': ( 'tokenisation/byte_pair_encoding_from_scratch.html#bpe.merge_pair',
+                                                                                         'ai_notes/tokenisation/bpe.py'),
                                            'ai_notes.tokenisation.bpe.BPE.train': ( 'tokenisation/byte_pair_encoding_from_scratch.html#bpe.train',
                                                                                     'ai_notes/tokenisation/bpe.py')}}}
