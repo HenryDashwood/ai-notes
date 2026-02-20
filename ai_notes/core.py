@@ -6,4 +6,5 @@
 __all__ = ['foo']
 
 # %% ../nbs/00_core.ipynb #1c43287a
-def foo(): pass
+def foo():
+    pass
