@@ -18,8 +18,7 @@ class NaiveBPE:
         self.vocab_size = vocab_size
 
     def encode(self, text: str) -> list[int]:
-        token_bytes: bytes = text.encode(encoding="utf-8")
-        tokens: list[int] = list(map(int, token_bytes))
+        tokens = self.get_tokens(text)
         for pair, idx in self.merges.items():
             tokens = self.merge_pair(tokens, pair, idx)
         return tokens
@@ -95,8 +94,7 @@ class ChunkedBPE:
             self.vocab[i] = self.vocab[most_common_pair[0]] + self.vocab[most_common_pair[1]]
 
     def _encode_single(self, text: str) -> list[int]:
-        token_bytes: bytes = text.encode(encoding="utf-8")
-        tokens: list[int] = list(map(int, token_bytes))
+        tokens = self.get_tokens(text)
         for pair, idx in self.merges.items():
             tokens = self.merge_pair(tokens, pair, idx)
         return tokens
@@ -166,8 +164,7 @@ class BPE:
             self.vocab[self.vocab_size - len(self.special_tokens) + i] = st.encode("utf-8")
 
     def _encode_single(self, text: str) -> list[int]:
-        token_bytes: bytes = text.encode(encoding="utf-8")
-        tokens: list[int] = list(map(int, token_bytes))
+        tokens = self.get_tokens(text)
         for pair, idx in self.merges.items():
             tokens = self.merge_pair(tokens, pair, idx)
         return tokens
