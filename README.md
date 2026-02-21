@@ -4,7 +4,7 @@
 
 # AI Notes
 
-Part of henrydashwood.com
+Part of [henrydashwood.com](https://henrydashwood.com)
 
 Notes on AI related things. Mostly a place for more involved bits of
 code so the notes and posts on the main site can be kept clean.
