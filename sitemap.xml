@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>/attention/01-self-attention-causal-mask.html</loc>
+    <lastmod>2026-04-03T22:20:57.444Z</lastmod>
+  </url>
+  <url>
+    <loc>/pytorch/basics.html</loc>
+    <lastmod>2026-04-03T22:20:57.403Z</lastmod>
+  </url>
+  <url>
+    <loc>/tokenisation/sentencepiece.html</loc>
+    <lastmod>2026-04-03T22:20:57.420Z</lastmod>
+  </url>
+  <url>
+    <loc>/tokenisation/byte_pair_encoding_from_scratch.html</loc>
+    <lastmod>2026-04-03T22:20:57.457Z</lastmod>
+  </url>
+  <url>
+    <loc>/index.html</loc>
+    <lastmod>2026-04-03T22:20:57.399Z</lastmod>
+  </url>
+  <url>
+    <loc>/attention/00-simple-self-attention.html</loc>
+    <lastmod>2026-04-03T22:20:57.449Z</lastmod>
+  </url>
+</urlset>

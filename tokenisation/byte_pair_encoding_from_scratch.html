@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.36">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Byte-pair encoding from scratch – ai-notes</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-845c23b38eaddc0f92fda52bfe77a8c8.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-a3f6bd1e97f121887d2ce1b8fe2cd664.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="../styles.css">
+<meta property="og:title" content="Byte-pair encoding from scratch – ai-notes">
+<meta property="og:description" content="Code and visualizations for understanding transformer architectures">
+<meta property="og:site_name" content="ai-notes">
+<meta name="twitter:title" content="Byte-pair encoding from scratch – ai-notes">
+<meta name="twitter:description" content="Code and visualizations for understanding transformer architectures">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">ai-notes</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools tools-end">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../tokenisation/byte_pair_encoding_from_scratch.html">tokenisation</a></li><li class="breadcrumb-item"><a href="../tokenisation/byte_pair_encoding_from_scratch.html">Byte-pair encoding from scratch</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">&gt;</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">attention</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../attention/00-simple-self-attention.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Self-Attention from First Principles</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../attention/01-self-attention-causal-mask.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Self Attention with a causal mask</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">pytorch</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pytorch/basics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">PyTorch</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">tokenisation</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tokenisation/byte_pair_encoding_from_scratch.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Byte-pair encoding from scratch</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tokenisation/sentencepiece.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">SentencePiece</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#training" id="toc-training" class="nav-link active" data-scroll-target="#training">Training</a></li>
+  <li><a href="#decoding" id="toc-decoding" class="nav-link" data-scroll-target="#decoding">Decoding</a></li>
+  <li><a href="#encoding" id="toc-encoding" class="nav-link" data-scroll-target="#encoding">Encoding</a></li>
+  <li><a href="#as-a-class" id="toc-as-a-class" class="nav-link" data-scroll-target="#as-a-class">As a class</a>
+  <ul class="collapse">
+  <li><a href="#naivebpe" id="toc-naivebpe" class="nav-link" data-scroll-target="#naivebpe">NaiveBPE</a></li>
+  <li><a href="#tests" id="toc-tests" class="nav-link" data-scroll-target="#tests">Tests</a></li>
+  </ul></li>
+  <li><a href="#avoiding-merging-across-word-boundaries" id="toc-avoiding-merging-across-word-boundaries" class="nav-link" data-scroll-target="#avoiding-merging-across-word-boundaries">Avoiding merging across word boundaries</a>
+  <ul class="collapse">
+  <li><a href="#encoding-with-chunks" id="toc-encoding-with-chunks" class="nav-link" data-scroll-target="#encoding-with-chunks">Encoding with chunks</a></li>
+  <li><a href="#decoding-with-chunks" id="toc-decoding-with-chunks" class="nav-link" data-scroll-target="#decoding-with-chunks">Decoding with chunks</a></li>
+  </ul></li>
+  <li><a href="#as-a-class-1" id="toc-as-a-class-1" class="nav-link" data-scroll-target="#as-a-class-1">As a class</a>
+  <ul class="collapse">
+  <li><a href="#chunkedbpe" id="toc-chunkedbpe" class="nav-link" data-scroll-target="#chunkedbpe">ChunkedBPE</a></li>
+  <li><a href="#tests-1" id="toc-tests-1" class="nav-link" data-scroll-target="#tests-1">Tests</a></li>
+  </ul></li>
+  <li><a href="#full-bpe" id="toc-full-bpe" class="nav-link" data-scroll-target="#full-bpe">Full BPE</a>
+  <ul class="collapse">
+  <li><a href="#bpe" id="toc-bpe" class="nav-link" data-scroll-target="#bpe">BPE</a></li>
+  </ul></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="byte_pair_encoding_from_scratch.html.md"><i class="bi bi-file-code"></i>CommonMark</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../tokenisation/byte_pair_encoding_from_scratch.html">tokenisation</a></li><li class="breadcrumb-item"><a href="../tokenisation/byte_pair_encoding_from_scratch.html">Byte-pair encoding from scratch</a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title">Byte-pair encoding from scratch</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<div id="03ca2852" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>random.seed(<span class="dv">42</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>In byte-pair encoding we build a vocabulary by iteratively merging the most frequent pair of adjacent tokens.</p>
+<ol type="1">
+<li>Start with individual characters as tokens.</li>
+<li>Find the most frequent pair of adjacent tokens.</li>
+<li>Merge that pair into a new token.</li>
+<li>Repeat until we reach the desired size of our vocabulary.</li>
+</ol>
+<p>We start off by creating a small corpus of text.</p>
+<div id="2c12376c" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> lorem.text()</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(text)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Eius eius dolor tempora consectetur sed. Amet quaerat modi aliquam adipisci amet dolorem eius. Quiquia adipisci porro dolorem sit quisquam sit porro. Eius neque quaerat est velit adipisci ut. Sit modi ipsum est dolor.
+
+Consectetur amet magnam consectetur labore labore. Est velit aliquam tempora neque porro consectetur magnam. Porro etincidunt voluptatem quisquam. Labore quaerat dolorem sit amet aliquam sed eius. Amet eius consectetur magnam est neque. Dolore labore labore dolorem sed est.
+
+Quiquia quisquam dolore porro. Dolore neque magnam est quisquam. Eius sed ipsum voluptatem ut ut aliquam eius. Velit ipsum magnam est. Dolorem quaerat sit ipsum. Quisquam non magnam quisquam neque. Est dolor eius tempora porro. Est tempora quaerat modi quaerat magnam labore eius. Numquam non amet ut aliquam. Dolor quisquam dolore velit.</code></pre>
+</div>
+</div>
+<section id="training" class="level2">
+<h2 class="anchored" data-anchor-id="training">Training</h2>
+<div id="66eeb266" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>tokens <span class="op">=</span> text.encode(<span class="st">"utf-8"</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tokens)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>b'Eius eius dolor tempora consectetur sed. Amet quaerat modi aliquam adipisci amet dolorem eius. Quiquia adipisci porro dolorem sit quisquam sit porro. Eius neque quaerat est velit adipisci ut. Sit modi ipsum est dolor.\n\nConsectetur amet magnam consectetur labore labore. Est velit aliquam tempora neque porro consectetur magnam. Porro etincidunt voluptatem quisquam. Labore quaerat dolorem sit amet aliquam sed eius. Amet eius consectetur magnam est neque. Dolore labore labore dolorem sed est.\n\nQuiquia quisquam dolore porro. Dolore neque magnam est quisquam. Eius sed ipsum voluptatem ut ut aliquam eius. Velit ipsum magnam est. Dolorem quaerat sit ipsum. Quisquam non magnam quisquam neque. Est dolor eius tempora porro. Est tempora quaerat modi quaerat magnam labore eius. Numquam non amet ut aliquam. Dolor quisquam dolore velit.'</code></pre>
+</div>
+</div>
+<div id="b249bb5c" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>tokens <span class="op">=</span> <span class="bu">list</span>(<span class="bu">map</span>(<span class="bu">int</span>, tokens))</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tokens)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Length: </span><span class="sc">{</span><span class="bu">len</span>(tokens)<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[69, 105, 117, 115, 32, 101, 105, 117, 115, 32, 100, 111, 108, 111, 114, 32, 116, 101, 109, 112, 111, 114, 97, 32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114, 32, 115, 101, 100, 46, 32, 65, 109, 101, 116, 32, 113, 117, 97, 101, 114, 97, 116, 32, 109, 111, 100, 105, 32, 97, 108, 105, 113, 117, 97, 109, 32, 97, 100, 105, 112, 105, 115, 99, 105, 32, 97, 109, 101, 116, 32, 100, 111, 108, 111, 114, 101, 109, 32, 101, 105, 117, 115, 46, 32, 81, 117, 105, 113, 117, 105, 97, 32, 97, 100, 105, 112, 105, 115, 99, 105, 32, 112, 111, 114, 114, 111, 32, 100, 111, 108, 111, 114, 101, 109, 32, 115, 105, 116, 32, 113, 117, 105, 115, 113, 117, 97, 109, 32, 115, 105, 116, 32, 112, 111, 114, 114, 111, 46, 32, 69, 105, 117, 115, 32, 110, 101, 113, 117, 101, 32, 113, 117, 97, 101, 114, 97, 116, 32, 101, 115, 116, 32, 118, 101, 108, 105, 116, 32, 97, 100, 105, 112, 105, 115, 99, 105, 32, 117, 116, 46, 32, 83, 105, 116, 32, 109, 111, 100, 105, 32, 105, 112, 115, 117, 109, 32, 101, 115, 116, 32, 100, 111, 108, 111, 114, 46, 10, 10, 67, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114, 32, 97, 109, 101, 116, 32, 109, 97, 103, 110, 97, 109, 32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114, 32, 108, 97, 98, 111, 114, 101, 32, 108, 97, 98, 111, 114, 101, 46, 32, 69, 115, 116, 32, 118, 101, 108, 105, 116, 32, 97, 108, 105, 113, 117, 97, 109, 32, 116, 101, 109, 112, 111, 114, 97, 32, 110, 101, 113, 117, 101, 32, 112, 111, 114, 114, 111, 32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114, 32, 109, 97, 103, 110, 97, 109, 46, 32, 80, 111, 114, 114, 111, 32, 101, 116, 105, 110, 99, 105, 100, 117, 110, 116, 32, 118, 111, 108, 117, 112, 116, 97, 116, 101, 109, 32, 113, 117, 105, 115, 113, 117, 97, 109, 46, 32, 76, 97, 98, 111, 114, 101, 32, 113, 117, 97, 101, 114, 97, 116, 32, 100, 111, 108, 111, 114, 101, 109, 32, 115, 105, 116, 32, 97, 109, 101, 116, 32, 97, 108, 105, 113, 117, 97, 109, 32, 115, 101, 100, 32, 101, 105, 117, 115, 46, 32, 65, 109, 101, 116, 32, 101, 105, 117, 115, 32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114, 32, 109, 97, 103, 110, 97, 109, 32, 101, 115, 116, 32, 110, 101, 113, 117, 101, 46, 32, 68, 111, 108, 111, 114, 101, 32, 108, 97, 98, 111, 114, 101, 32, 108, 97, 98, 111, 114, 101, 32, 100, 111, 108, 111, 114, 101, 109, 32, 115, 101, 100, 32, 101, 115, 116, 46, 10, 10, 81, 117, 105, 113, 117, 105, 97, 32, 113, 117, 105, 115, 113, 117, 97, 109, 32, 100, 111, 108, 111, 114, 101, 32, 112, 111, 114, 114, 111, 46, 32, 68, 111, 108, 111, 114, 101, 32, 110, 101, 113, 117, 101, 32, 109, 97, 103, 110, 97, 109, 32, 101, 115, 116, 32, 113, 117, 105, 115, 113, 117, 97, 109, 46, 32, 69, 105, 117, 115, 32, 115, 101, 100, 32, 105, 112, 115, 117, 109, 32, 118, 111, 108, 117, 112, 116, 97, 116, 101, 109, 32, 117, 116, 32, 117, 116, 32, 97, 108, 105, 113, 117, 97, 109, 32, 101, 105, 117, 115, 46, 32, 86, 101, 108, 105, 116, 32, 105, 112, 115, 117, 109, 32, 109, 97, 103, 110, 97, 109, 32, 101, 115, 116, 46, 32, 68, 111, 108, 111, 114, 101, 109, 32, 113, 117, 97, 101, 114, 97, 116, 32, 115, 105, 116, 32, 105, 112, 115, 117, 109, 46, 32, 81, 117, 105, 115, 113, 117, 97, 109, 32, 110, 111, 110, 32, 109, 97, 103, 110, 97, 109, 32, 113, 117, 105, 115, 113, 117, 97, 109, 32, 110, 101, 113, 117, 101, 46, 32, 69, 115, 116, 32, 100, 111, 108, 111, 114, 32, 101, 105, 117, 115, 32, 116, 101, 109, 112, 111, 114, 97, 32, 112, 111, 114, 114, 111, 46, 32, 69, 115, 116, 32, 116, 101, 109, 112, 111, 114, 97, 32, 113, 117, 97, 101, 114, 97, 116, 32, 109, 111, 100, 105, 32, 113, 117, 97, 101, 114, 97, 116, 32, 109, 97, 103, 110, 97, 109, 32, 108, 97, 98, 111, 114, 101, 32, 101, 105, 117, 115, 46, 32, 78, 117, 109, 113, 117, 97, 109, 32, 110, 111, 110, 32, 97, 109, 101, 116, 32, 117, 116, 32, 97, 108, 105, 113, 117, 97, 109, 46, 32, 68, 111, 108, 111, 114, 32, 113, 117, 105, 115, 113, 117, 97, 109, 32, 100, 111, 108, 111, 114, 101, 32, 118, 101, 108, 105, 116, 46]
+Length: 833</code></pre>
+</div>
+</div>
+<div id="87bad0f9" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>pair_counts: <span class="bu">dict</span>[<span class="bu">tuple</span>[<span class="bu">int</span>, <span class="bu">int</span>], <span class="bu">int</span>] <span class="op">=</span> {}</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> pair <span class="kw">in</span> <span class="bu">zip</span>(tokens, tokens[<span class="dv">1</span>:]):</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    pair_counts[pair] <span class="op">=</span> pair_counts.get(pair, <span class="dv">0</span>) <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(pair_counts)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>{(69, 105): 3, (105, 117): 10, (117, 115): 10, (115, 32): 6, (32, 101): 14, (101, 105): 7, (32, 100): 9, (100, 111): 9, (111, 108): 15, (108, 111): 13, (111, 114): 29, (114, 32): 8, (32, 116): 4, (116, 101): 11, (101, 109): 11, (109, 112): 4, (112, 111): 9, (114, 97): 10, (97, 32): 6, (32, 99): 4, (99, 111): 4, (111, 110): 7, (110, 115): 5, (115, 101): 9, (101, 99): 5, (99, 116): 5, (101, 116): 12, (116, 117): 5, (117, 114): 5, (32, 115): 8, (101, 100): 4, (100, 46): 1, (46, 32): 18, (32, 65): 2, (65, 109): 2, (109, 101): 6, (116, 32): 31, (32, 113): 12, (113, 117): 32, (117, 97): 19, (97, 101): 6, (101, 114): 6, (97, 116): 8, (32, 109): 10, (109, 111): 3, (111, 100): 3, (100, 105): 6, (105, 32): 6, (32, 97): 12, (97, 108): 5, (108, 105): 9, (105, 113): 7, (97, 109): 24, (109, 32): 26, (97, 100): 3, (105, 112): 7, (112, 105): 3, (105, 115): 10, (115, 99): 3, (99, 105): 4, (114, 101): 15, (115, 46): 4, (32, 81): 2, (81, 117): 3, (117, 105): 11, (105, 97): 2, (32, 112): 5, (114, 114): 6, (114, 111): 6, (111, 32): 3, (115, 105): 4, (105, 116): 9, (115, 113): 7, (111, 46): 3, (32, 69): 5, (32, 110): 7, (110, 101): 5, (101, 113): 5, (117, 101): 5, (101, 32): 12, (101, 115): 6, (115, 116): 9, (32, 118): 5, (118, 101): 3, (101, 108): 4, (32, 117): 4, (117, 116): 4, (116, 46): 4, (32, 83): 1, (83, 105): 1, (32, 105): 4, (112, 115): 4, (115, 117): 4, (117, 109): 5, (114, 46): 1, (46, 10): 2, (10, 10): 2, (10, 67): 1, (67, 111): 1, (109, 97): 7, (97, 103): 7, (103, 110): 7, (110, 97): 7, (32, 108): 5, (108, 97): 5, (97, 98): 6, (98, 111): 6, (101, 46): 3, (69, 115): 3, (109, 46): 5, (32, 80): 1, (80, 111): 1, (116, 105): 1, (105, 110): 1, (110, 99): 1, (105, 100): 1, (100, 117): 1, (117, 110): 1, (110, 116): 1, (118, 111): 2, (108, 117): 2, (117, 112): 2, (112, 116): 2, (116, 97): 2, (32, 76): 1, (76, 97): 1, (100, 32): 3, (32, 68): 4, (68, 111): 4, (10, 81): 1, (32, 86): 1, (86, 101): 1, (110, 111): 2, (110, 32): 2, (32, 78): 1, (78, 117): 1, (109, 113): 1}</code></pre>
+</div>
+</div>
+<p>You can print the sorted pair counts like this:</p>
+<div id="6fcced72" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">sorted</span>(pair_counts.items(), key<span class="op">=</span><span class="kw">lambda</span> kv: kv[<span class="dv">1</span>], reverse<span class="op">=</span><span class="va">True</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[((113, 117), 32), ((116, 32), 31), ((111, 114), 29), ((109, 32), 26), ((97, 109), 24), ((117, 97), 19), ((46, 32), 18), ((111, 108), 15), ((114, 101), 15), ((32, 101), 14), ((108, 111), 13), ((101, 116), 12), ((32, 113), 12), ((32, 97), 12), ((101, 32), 12), ((116, 101), 11), ((101, 109), 11), ((117, 105), 11), ((105, 117), 10), ((117, 115), 10), ((114, 97), 10), ((32, 109), 10), ((105, 115), 10), ((32, 100), 9), ((100, 111), 9), ((112, 111), 9), ((115, 101), 9), ((108, 105), 9), ((105, 116), 9), ((115, 116), 9), ((114, 32), 8), ((32, 115), 8), ((97, 116), 8), ((101, 105), 7), ((111, 110), 7), ((105, 113), 7), ((105, 112), 7), ((115, 113), 7), ((32, 110), 7), ((109, 97), 7), ((97, 103), 7), ((103, 110), 7), ((110, 97), 7), ((115, 32), 6), ((97, 32), 6), ((109, 101), 6), ((97, 101), 6), ((101, 114), 6), ((100, 105), 6), ((105, 32), 6), ((114, 114), 6), ((114, 111), 6), ((101, 115), 6), ((97, 98), 6), ((98, 111), 6), ((110, 115), 5), ((101, 99), 5), ((99, 116), 5), ((116, 117), 5), ((117, 114), 5), ((97, 108), 5), ((32, 112), 5), ((32, 69), 5), ((110, 101), 5), ((101, 113), 5), ((117, 101), 5), ((32, 118), 5), ((117, 109), 5), ((32, 108), 5), ((108, 97), 5), ((109, 46), 5), ((32, 116), 4), ((109, 112), 4), ((32, 99), 4), ((99, 111), 4), ((101, 100), 4), ((99, 105), 4), ((115, 46), 4), ((115, 105), 4), ((101, 108), 4), ((32, 117), 4), ((117, 116), 4), ((116, 46), 4), ((32, 105), 4), ((112, 115), 4), ((115, 117), 4), ((32, 68), 4), ((68, 111), 4), ((69, 105), 3), ((109, 111), 3), ((111, 100), 3), ((97, 100), 3), ((112, 105), 3), ((115, 99), 3), ((81, 117), 3), ((111, 32), 3), ((111, 46), 3), ((118, 101), 3), ((101, 46), 3), ((69, 115), 3), ((100, 32), 3), ((32, 65), 2), ((65, 109), 2), ((32, 81), 2), ((105, 97), 2), ((46, 10), 2), ((10, 10), 2), ((118, 111), 2), ((108, 117), 2), ((117, 112), 2), ((112, 116), 2), ((116, 97), 2), ((110, 111), 2), ((110, 32), 2), ((100, 46), 1), ((32, 83), 1), ((83, 105), 1), ((114, 46), 1), ((10, 67), 1), ((67, 111), 1), ((32, 80), 1), ((80, 111), 1), ((116, 105), 1), ((105, 110), 1), ((110, 99), 1), ((105, 100), 1), ((100, 117), 1), ((117, 110), 1), ((110, 116), 1), ((32, 76), 1), ((76, 97), 1), ((10, 81), 1), ((32, 86), 1), ((86, 101), 1), ((32, 78), 1), ((78, 117), 1), ((109, 113), 1)]</code></pre>
+</div>
+</div>
+<p>Next we need to pick the pair with the highest count as our first merge.</p>
+<div id="61e7db8c" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>most_common_pair <span class="op">=</span> <span class="bu">max</span>(pair_counts, key<span class="op">=</span><span class="kw">lambda</span> p: pair_counts[p])</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(most_common_pair)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Count: </span><span class="sc">{</span>pair_counts[most_common_pair]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span><span class="bu">chr</span>(most_common_pair[<span class="dv">0</span>])<span class="sc">}{</span><span class="bu">chr</span>(most_common_pair[<span class="dv">1</span>])<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>(113, 117)
+Count: 32
+qu</code></pre>
+</div>
+</div>
+<p>And merge it into a new token.</p>
+<div id="6f5fd7fa" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>new_token <span class="op">=</span> most_common_pair[<span class="dv">0</span>] <span class="op">+</span> most_common_pair[<span class="dv">1</span>]</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(new_token)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>230</code></pre>
+</div>
+</div>
+<p>We now update our words to use the new token.</p>
+<div id="13011be0" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>new_tokens <span class="op">=</span> []</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>i <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> i <span class="op">&lt;</span> <span class="bu">len</span>(tokens):</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> i <span class="op">&lt;</span> <span class="bu">len</span>(tokens) <span class="op">-</span> <span class="dv">1</span> <span class="kw">and</span> (tokens[i], tokens[i <span class="op">+</span> <span class="dv">1</span>]) <span class="op">==</span> most_common_pair:</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>        new_tokens.append(new_token)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>        i <span class="op">+=</span> <span class="dv">2</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>        new_tokens.append(tokens[i])</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>        i <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(new_tokens)</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Length: </span><span class="sc">{</span><span class="bu">len</span>(new_tokens)<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[69, 105, 117, 115, 32, 101, 105, 117, 115, 32, 100, 111, 108, 111, 114, 32, 116, 101, 109, 112, 111, 114, 97, 32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114, 32, 115, 101, 100, 46, 32, 65, 109, 101, 116, 32, 230, 97, 101, 114, 97, 116, 32, 109, 111, 100, 105, 32, 97, 108, 105, 230, 97, 109, 32, 97, 100, 105, 112, 105, 115, 99, 105, 32, 97, 109, 101, 116, 32, 100, 111, 108, 111, 114, 101, 109, 32, 101, 105, 117, 115, 46, 32, 81, 117, 105, 230, 105, 97, 32, 97, 100, 105, 112, 105, 115, 99, 105, 32, 112, 111, 114, 114, 111, 32, 100, 111, 108, 111, 114, 101, 109, 32, 115, 105, 116, 32, 230, 105, 115, 230, 97, 109, 32, 115, 105, 116, 32, 112, 111, 114, 114, 111, 46, 32, 69, 105, 117, 115, 32, 110, 101, 230, 101, 32, 230, 97, 101, 114, 97, 116, 32, 101, 115, 116, 32, 118, 101, 108, 105, 116, 32, 97, 100, 105, 112, 105, 115, 99, 105, 32, 117, 116, 46, 32, 83, 105, 116, 32, 109, 111, 100, 105, 32, 105, 112, 115, 117, 109, 32, 101, 115, 116, 32, 100, 111, 108, 111, 114, 46, 10, 10, 67, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114, 32, 97, 109, 101, 116, 32, 109, 97, 103, 110, 97, 109, 32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114, 32, 108, 97, 98, 111, 114, 101, 32, 108, 97, 98, 111, 114, 101, 46, 32, 69, 115, 116, 32, 118, 101, 108, 105, 116, 32, 97, 108, 105, 230, 97, 109, 32, 116, 101, 109, 112, 111, 114, 97, 32, 110, 101, 230, 101, 32, 112, 111, 114, 114, 111, 32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114, 32, 109, 97, 103, 110, 97, 109, 46, 32, 80, 111, 114, 114, 111, 32, 101, 116, 105, 110, 99, 105, 100, 117, 110, 116, 32, 118, 111, 108, 117, 112, 116, 97, 116, 101, 109, 32, 230, 105, 115, 230, 97, 109, 46, 32, 76, 97, 98, 111, 114, 101, 32, 230, 97, 101, 114, 97, 116, 32, 100, 111, 108, 111, 114, 101, 109, 32, 115, 105, 116, 32, 97, 109, 101, 116, 32, 97, 108, 105, 230, 97, 109, 32, 115, 101, 100, 32, 101, 105, 117, 115, 46, 32, 65, 109, 101, 116, 32, 101, 105, 117, 115, 32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114, 32, 109, 97, 103, 110, 97, 109, 32, 101, 115, 116, 32, 110, 101, 230, 101, 46, 32, 68, 111, 108, 111, 114, 101, 32, 108, 97, 98, 111, 114, 101, 32, 108, 97, 98, 111, 114, 101, 32, 100, 111, 108, 111, 114, 101, 109, 32, 115, 101, 100, 32, 101, 115, 116, 46, 10, 10, 81, 117, 105, 230, 105, 97, 32, 230, 105, 115, 230, 97, 109, 32, 100, 111, 108, 111, 114, 101, 32, 112, 111, 114, 114, 111, 46, 32, 68, 111, 108, 111, 114, 101, 32, 110, 101, 230, 101, 32, 109, 97, 103, 110, 97, 109, 32, 101, 115, 116, 32, 230, 105, 115, 230, 97, 109, 46, 32, 69, 105, 117, 115, 32, 115, 101, 100, 32, 105, 112, 115, 117, 109, 32, 118, 111, 108, 117, 112, 116, 97, 116, 101, 109, 32, 117, 116, 32, 117, 116, 32, 97, 108, 105, 230, 97, 109, 32, 101, 105, 117, 115, 46, 32, 86, 101, 108, 105, 116, 32, 105, 112, 115, 117, 109, 32, 109, 97, 103, 110, 97, 109, 32, 101, 115, 116, 46, 32, 68, 111, 108, 111, 114, 101, 109, 32, 230, 97, 101, 114, 97, 116, 32, 115, 105, 116, 32, 105, 112, 115, 117, 109, 46, 32, 81, 117, 105, 115, 230, 97, 109, 32, 110, 111, 110, 32, 109, 97, 103, 110, 97, 109, 32, 230, 105, 115, 230, 97, 109, 32, 110, 101, 230, 101, 46, 32, 69, 115, 116, 32, 100, 111, 108, 111, 114, 32, 101, 105, 117, 115, 32, 116, 101, 109, 112, 111, 114, 97, 32, 112, 111, 114, 114, 111, 46, 32, 69, 115, 116, 32, 116, 101, 109, 112, 111, 114, 97, 32, 230, 97, 101, 114, 97, 116, 32, 109, 111, 100, 105, 32, 230, 97, 101, 114, 97, 116, 32, 109, 97, 103, 110, 97, 109, 32, 108, 97, 98, 111, 114, 101, 32, 101, 105, 117, 115, 46, 32, 78, 117, 109, 230, 97, 109, 32, 110, 111, 110, 32, 97, 109, 101, 116, 32, 117, 116, 32, 97, 108, 105, 230, 97, 109, 46, 32, 68, 111, 108, 111, 114, 32, 230, 105, 115, 230, 97, 109, 32, 100, 111, 108, 111, 114, 101, 32, 118, 101, 108, 105, 116, 46]
+Length: 801</code></pre>
+</div>
+</div>
+<div id="ca946586" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="kw">not</span> <span class="bu">any</span>(</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    new_tokens[i] <span class="op">==</span> most_common_pair[<span class="dv">0</span>] <span class="kw">and</span> new_tokens[i <span class="op">+</span> <span class="dv">1</span>] <span class="op">==</span> most_common_pair[<span class="dv">1</span>]</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(new_tokens) <span class="op">-</span> <span class="dv">1</span>)</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>new_tokens.count(new_token)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<pre><code>32</code></pre>
+</div>
+</div>
+<p>We can see that the length of the token list has decreased by the number of times we merged the pair (833 -&gt; 801). Meanwhile, our vocabulary has obviously increased by 1.</p>
+<p>Let’s wrap what we’ve done so far into some functions:</p>
+<div id="05ee01db" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_tokens(text: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">list</span>[<span class="bu">int</span>]:</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    tokens: <span class="bu">bytes</span> <span class="op">=</span> text.encode(encoding<span class="op">=</span><span class="st">"utf-8"</span>)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">list</span>(<span class="bu">map</span>(<span class="bu">int</span>, tokens))</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_pair_counts(tokens: <span class="bu">list</span>[<span class="bu">int</span>]) <span class="op">-&gt;</span> <span class="bu">dict</span>[<span class="bu">tuple</span>[<span class="bu">int</span>, <span class="bu">int</span>], <span class="bu">int</span>]:</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    counts: <span class="bu">dict</span>[<span class="bu">tuple</span>[<span class="bu">int</span>, <span class="bu">int</span>], <span class="bu">int</span>] <span class="op">=</span> {}</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> pair <span class="kw">in</span> <span class="bu">zip</span>(tokens, tokens[<span class="dv">1</span>:]):</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>        counts[pair] <span class="op">=</span> counts.get(pair, <span class="dv">0</span>) <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> counts</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> merge_pair(tokens: <span class="bu">list</span>[<span class="bu">int</span>], pair: <span class="bu">tuple</span>[<span class="bu">int</span>, <span class="bu">int</span>], idx: <span class="bu">int</span>) <span class="op">-&gt;</span> <span class="bu">list</span>[<span class="bu">int</span>]:</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>    new_tokens <span class="op">=</span> []</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>    i <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> i <span class="op">&lt;</span> <span class="bu">len</span>(tokens):</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> i <span class="op">&lt;</span> <span class="bu">len</span>(tokens) <span class="op">-</span> <span class="dv">1</span> <span class="kw">and</span> (tokens[i], tokens[i <span class="op">+</span> <span class="dv">1</span>]) <span class="op">==</span> pair:</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>            new_tokens.append(idx)</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>            i <span class="op">+=</span> <span class="dv">2</span></span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>            new_tokens.append(tokens[i])</span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>            i <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> new_tokens</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>And we’ll use them in a loop</p>
+<div id="4a1f3049" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>VOCAB_SIZE <span class="op">=</span> <span class="dv">260</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>merges: <span class="bu">dict</span>[<span class="bu">tuple</span>[<span class="bu">int</span>, <span class="bu">int</span>], <span class="bu">int</span>] <span class="op">=</span> {}</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>tokens <span class="op">=</span> get_tokens(text)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">256</span>, VOCAB_SIZE):</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    pair_counts <span class="op">=</span> get_pair_counts(tokens)</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>    most_common_pair <span class="op">=</span> <span class="bu">max</span>(pair_counts, key<span class="op">=</span><span class="kw">lambda</span> p: pair_counts[p])</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>    tokens <span class="op">=</span> merge_pair(tokens, most_common_pair, i)</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>    merges[most_common_pair] <span class="op">=</span> i</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Merged </span><span class="sc">{</span>most_common_pair<span class="sc">}</span><span class="ss"> into </span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">. Sequence length: </span><span class="sc">{</span><span class="bu">len</span>(tokens)<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Merged (113, 117) into 256. Sequence length: 801
+Merged (116, 32) into 257. Sequence length: 770
+Merged (111, 114) into 258. Sequence length: 741
+Merged (109, 32) into 259. Sequence length: 715</code></pre>
+</div>
+</div>
+<div id="82a5334d" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(merges)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>{(113, 117): 256, (116, 32): 257, (111, 114): 258, (109, 32): 259}</code></pre>
+</div>
+</div>
+<p>And that is how we build up our vocabulary. The vocab put together looks like this:</p>
+<div id="053acf7d" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>vocab <span class="op">=</span> {i: <span class="bu">bytes</span>([i]) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">256</span>)}</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> pair, idx <span class="kw">in</span> merges.items():</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    vocab[idx] <span class="op">=</span> vocab[pair[<span class="dv">0</span>]] <span class="op">+</span> vocab[pair[<span class="dv">1</span>]]</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(vocab)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>{0: b'\x00', 1: b'\x01', 2: b'\x02', 3: b'\x03', 4: b'\x04', 5: b'\x05', 6: b'\x06', 7: b'\x07', 8: b'\x08', 9: b'\t', 10: b'\n', 11: b'\x0b', 12: b'\x0c', 13: b'\r', 14: b'\x0e', 15: b'\x0f', 16: b'\x10', 17: b'\x11', 18: b'\x12', 19: b'\x13', 20: b'\x14', 21: b'\x15', 22: b'\x16', 23: b'\x17', 24: b'\x18', 25: b'\x19', 26: b'\x1a', 27: b'\x1b', 28: b'\x1c', 29: b'\x1d', 30: b'\x1e', 31: b'\x1f', 32: b' ', 33: b'!', 34: b'"', 35: b'#', 36: b'$', 37: b'%', 38: b'&amp;', 39: b"'", 40: b'(', 41: b')', 42: b'*', 43: b'+', 44: b',', 45: b'-', 46: b'.', 47: b'/', 48: b'0', 49: b'1', 50: b'2', 51: b'3', 52: b'4', 53: b'5', 54: b'6', 55: b'7', 56: b'8', 57: b'9', 58: b':', 59: b';', 60: b'&lt;', 61: b'=', 62: b'&gt;', 63: b'?', 64: b'@', 65: b'A', 66: b'B', 67: b'C', 68: b'D', 69: b'E', 70: b'F', 71: b'G', 72: b'H', 73: b'I', 74: b'J', 75: b'K', 76: b'L', 77: b'M', 78: b'N', 79: b'O', 80: b'P', 81: b'Q', 82: b'R', 83: b'S', 84: b'T', 85: b'U', 86: b'V', 87: b'W', 88: b'X', 89: b'Y', 90: b'Z', 91: b'[', 92: b'\\', 93: b']', 94: b'^', 95: b'_', 96: b'`', 97: b'a', 98: b'b', 99: b'c', 100: b'd', 101: b'e', 102: b'f', 103: b'g', 104: b'h', 105: b'i', 106: b'j', 107: b'k', 108: b'l', 109: b'm', 110: b'n', 111: b'o', 112: b'p', 113: b'q', 114: b'r', 115: b's', 116: b't', 117: b'u', 118: b'v', 119: b'w', 120: b'x', 121: b'y', 122: b'z', 123: b'{', 124: b'|', 125: b'}', 126: b'~', 127: b'\x7f', 128: b'\x80', 129: b'\x81', 130: b'\x82', 131: b'\x83', 132: b'\x84', 133: b'\x85', 134: b'\x86', 135: b'\x87', 136: b'\x88', 137: b'\x89', 138: b'\x8a', 139: b'\x8b', 140: b'\x8c', 141: b'\x8d', 142: b'\x8e', 143: b'\x8f', 144: b'\x90', 145: b'\x91', 146: b'\x92', 147: b'\x93', 148: b'\x94', 149: b'\x95', 150: b'\x96', 151: b'\x97', 152: b'\x98', 153: b'\x99', 154: b'\x9a', 155: b'\x9b', 156: b'\x9c', 157: b'\x9d', 158: b'\x9e', 159: b'\x9f', 160: b'\xa0', 161: b'\xa1', 162: b'\xa2', 163: b'\xa3', 164: b'\xa4', 165: b'\xa5', 166: b'\xa6', 167: b'\xa7', 168: b'\xa8', 169: b'\xa9', 170: b'\xaa', 171: b'\xab', 172: b'\xac', 173: b'\xad', 174: b'\xae', 175: b'\xaf', 176: b'\xb0', 177: b'\xb1', 178: b'\xb2', 179: b'\xb3', 180: b'\xb4', 181: b'\xb5', 182: b'\xb6', 183: b'\xb7', 184: b'\xb8', 185: b'\xb9', 186: b'\xba', 187: b'\xbb', 188: b'\xbc', 189: b'\xbd', 190: b'\xbe', 191: b'\xbf', 192: b'\xc0', 193: b'\xc1', 194: b'\xc2', 195: b'\xc3', 196: b'\xc4', 197: b'\xc5', 198: b'\xc6', 199: b'\xc7', 200: b'\xc8', 201: b'\xc9', 202: b'\xca', 203: b'\xcb', 204: b'\xcc', 205: b'\xcd', 206: b'\xce', 207: b'\xcf', 208: b'\xd0', 209: b'\xd1', 210: b'\xd2', 211: b'\xd3', 212: b'\xd4', 213: b'\xd5', 214: b'\xd6', 215: b'\xd7', 216: b'\xd8', 217: b'\xd9', 218: b'\xda', 219: b'\xdb', 220: b'\xdc', 221: b'\xdd', 222: b'\xde', 223: b'\xdf', 224: b'\xe0', 225: b'\xe1', 226: b'\xe2', 227: b'\xe3', 228: b'\xe4', 229: b'\xe5', 230: b'\xe6', 231: b'\xe7', 232: b'\xe8', 233: b'\xe9', 234: b'\xea', 235: b'\xeb', 236: b'\xec', 237: b'\xed', 238: b'\xee', 239: b'\xef', 240: b'\xf0', 241: b'\xf1', 242: b'\xf2', 243: b'\xf3', 244: b'\xf4', 245: b'\xf5', 246: b'\xf6', 247: b'\xf7', 248: b'\xf8', 249: b'\xf9', 250: b'\xfa', 251: b'\xfb', 252: b'\xfc', 253: b'\xfd', 254: b'\xfe', 255: b'\xff', 256: b'qu', 257: b't ', 258: b'or', 259: b'm '}</code></pre>
+</div>
+</div>
+</section>
+<section id="decoding" class="level2">
+<h2 class="anchored" data-anchor-id="decoding">Decoding</h2>
+<p>We need a way to decode our tokens back into text.</p>
+<div id="8db92263" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> decode(tokens: <span class="bu">list</span>[<span class="bu">int</span>]) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    token_bytes: <span class="bu">bytes</span> <span class="op">=</span> <span class="st">b""</span>.join(vocab[token] <span class="cf">for</span> token <span class="kw">in</span> tokens)</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> token_bytes.decode(<span class="st">"utf-8"</span>, errors<span class="op">=</span><span class="st">"replace"</span>)</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(decode(tokens))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Eius eius dolor tempora consectetur sed. Amet quaerat modi aliquam adipisci amet dolorem eius. Quiquia adipisci porro dolorem sit quisquam sit porro. Eius neque quaerat est velit adipisci ut. Sit modi ipsum est dolor.
+
+Consectetur amet magnam consectetur labore labore. Est velit aliquam tempora neque porro consectetur magnam. Porro etincidunt voluptatem quisquam. Labore quaerat dolorem sit amet aliquam sed eius. Amet eius consectetur magnam est neque. Dolore labore labore dolorem sed est.
+
+Quiquia quisquam dolore porro. Dolore neque magnam est quisquam. Eius sed ipsum voluptatem ut ut aliquam eius. Velit ipsum magnam est. Dolorem quaerat sit ipsum. Quisquam non magnam quisquam neque. Est dolor eius tempora porro. Est tempora quaerat modi quaerat magnam labore eius. Numquam non amet ut aliquam. Dolor quisquam dolore velit.</code></pre>
+</div>
+</div>
+</section>
+<section id="encoding" class="level2">
+<h2 class="anchored" data-anchor-id="encoding">Encoding</h2>
+<p>We also need a way to encode text into tokens, following the rules we built up in the training phase.</p>
+<div id="c8602b1a" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> encode(text: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">list</span>[<span class="bu">int</span>]:</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>    token_bytes: <span class="bu">bytes</span> <span class="op">=</span> text.encode(encoding<span class="op">=</span><span class="st">"utf-8"</span>)</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    tokens: <span class="bu">list</span>[<span class="bu">int</span>] <span class="op">=</span> <span class="bu">list</span>(<span class="bu">map</span>(<span class="bu">int</span>, token_bytes))</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> pair, idx <span class="kw">in</span> merges.items():</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>        tokens <span class="op">=</span> merge_pair(tokens, pair, idx)</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> tokens</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(encode(text))</span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Length: </span><span class="sc">{</span><span class="bu">len</span>(encode(text))<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[69, 105, 117, 115, 32, 101, 105, 117, 115, 32, 100, 111, 108, 258, 32, 116, 101, 109, 112, 258, 97, 32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114, 32, 115, 101, 100, 46, 32, 65, 109, 101, 257, 256, 97, 101, 114, 97, 257, 109, 111, 100, 105, 32, 97, 108, 105, 256, 97, 259, 97, 100, 105, 112, 105, 115, 99, 105, 32, 97, 109, 101, 257, 100, 111, 108, 258, 101, 259, 101, 105, 117, 115, 46, 32, 81, 117, 105, 256, 105, 97, 32, 97, 100, 105, 112, 105, 115, 99, 105, 32, 112, 258, 114, 111, 32, 100, 111, 108, 258, 101, 259, 115, 105, 257, 256, 105, 115, 256, 97, 259, 115, 105, 257, 112, 258, 114, 111, 46, 32, 69, 105, 117, 115, 32, 110, 101, 256, 101, 32, 256, 97, 101, 114, 97, 257, 101, 115, 257, 118, 101, 108, 105, 257, 97, 100, 105, 112, 105, 115, 99, 105, 32, 117, 116, 46, 32, 83, 105, 257, 109, 111, 100, 105, 32, 105, 112, 115, 117, 259, 101, 115, 257, 100, 111, 108, 258, 46, 10, 10, 67, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114, 32, 97, 109, 101, 257, 109, 97, 103, 110, 97, 259, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114, 32, 108, 97, 98, 258, 101, 32, 108, 97, 98, 258, 101, 46, 32, 69, 115, 257, 118, 101, 108, 105, 257, 97, 108, 105, 256, 97, 259, 116, 101, 109, 112, 258, 97, 32, 110, 101, 256, 101, 32, 112, 258, 114, 111, 32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114, 32, 109, 97, 103, 110, 97, 109, 46, 32, 80, 258, 114, 111, 32, 101, 116, 105, 110, 99, 105, 100, 117, 110, 257, 118, 111, 108, 117, 112, 116, 97, 116, 101, 259, 256, 105, 115, 256, 97, 109, 46, 32, 76, 97, 98, 258, 101, 32, 256, 97, 101, 114, 97, 257, 100, 111, 108, 258, 101, 259, 115, 105, 257, 97, 109, 101, 257, 97, 108, 105, 256, 97, 259, 115, 101, 100, 32, 101, 105, 117, 115, 46, 32, 65, 109, 101, 257, 101, 105, 117, 115, 32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114, 32, 109, 97, 103, 110, 97, 259, 101, 115, 257, 110, 101, 256, 101, 46, 32, 68, 111, 108, 258, 101, 32, 108, 97, 98, 258, 101, 32, 108, 97, 98, 258, 101, 32, 100, 111, 108, 258, 101, 259, 115, 101, 100, 32, 101, 115, 116, 46, 10, 10, 81, 117, 105, 256, 105, 97, 32, 256, 105, 115, 256, 97, 259, 100, 111, 108, 258, 101, 32, 112, 258, 114, 111, 46, 32, 68, 111, 108, 258, 101, 32, 110, 101, 256, 101, 32, 109, 97, 103, 110, 97, 259, 101, 115, 257, 256, 105, 115, 256, 97, 109, 46, 32, 69, 105, 117, 115, 32, 115, 101, 100, 32, 105, 112, 115, 117, 259, 118, 111, 108, 117, 112, 116, 97, 116, 101, 259, 117, 257, 117, 257, 97, 108, 105, 256, 97, 259, 101, 105, 117, 115, 46, 32, 86, 101, 108, 105, 257, 105, 112, 115, 117, 259, 109, 97, 103, 110, 97, 259, 101, 115, 116, 46, 32, 68, 111, 108, 258, 101, 259, 256, 97, 101, 114, 97, 257, 115, 105, 257, 105, 112, 115, 117, 109, 46, 32, 81, 117, 105, 115, 256, 97, 259, 110, 111, 110, 32, 109, 97, 103, 110, 97, 259, 256, 105, 115, 256, 97, 259, 110, 101, 256, 101, 46, 32, 69, 115, 257, 100, 111, 108, 258, 32, 101, 105, 117, 115, 32, 116, 101, 109, 112, 258, 97, 32, 112, 258, 114, 111, 46, 32, 69, 115, 257, 116, 101, 109, 112, 258, 97, 32, 256, 97, 101, 114, 97, 257, 109, 111, 100, 105, 32, 256, 97, 101, 114, 97, 257, 109, 97, 103, 110, 97, 259, 108, 97, 98, 258, 101, 32, 101, 105, 117, 115, 46, 32, 78, 117, 109, 256, 97, 259, 110, 111, 110, 32, 97, 109, 101, 257, 117, 257, 97, 108, 105, 256, 97, 109, 46, 32, 68, 111, 108, 258, 32, 256, 105, 115, 256, 97, 259, 100, 111, 108, 258, 101, 32, 118, 101, 108, 105, 116, 46]
+Length: 715</code></pre>
+</div>
+</div>
+<div id="cc4999df" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> decode(encode(text)) <span class="op">==</span> text</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="as-a-class" class="level2">
+<h2 class="anchored" data-anchor-id="as-a-class">As a class</h2>
+<hr>
+<section id="naivebpe" class="level3">
+<h3 class="anchored" data-anchor-id="naivebpe">NaiveBPE</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> NaiveBPE(</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>    vocab_size:<span class="bu">int</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>):</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Initialize self. See help(type(self)) for accurate signature.</em></p>
+<div id="6c42149c" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>naive_bpe <span class="op">=</span> NaiveBPE(vocab_size<span class="op">=</span><span class="dv">260</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="a7d42387" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>naive_bpe.train(text)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="tests" class="level3">
+<h3 class="anchored" data-anchor-id="tests">Tests</h3>
+<div id="96b9bdd5" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Vocab has the right size</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>(naive_bpe.vocab) <span class="op">==</span> <span class="dv">260</span>, <span class="ss">f"Expected 260, got </span><span class="sc">{</span><span class="bu">len</span>(naive_bpe.vocab)<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Base vocab entries are single bytes</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> naive_bpe.vocab[<span class="dv">65</span>] <span class="op">==</span> <span class="st">b"A"</span></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> naive_bpe.vocab[<span class="dv">32</span>] <span class="op">==</span> <span class="st">b" "</span></span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Merged vocab entries are bytes concatenations of their component tokens</span></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> pair, idx <span class="kw">in</span> naive_bpe.merges.items():</span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> naive_bpe.vocab[idx] <span class="op">==</span> naive_bpe.vocab[pair[<span class="dv">0</span>]] <span class="op">+</span> naive_bpe.vocab[pair[<span class="dv">1</span>]], (</span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"vocab[</span><span class="sc">{</span>idx<span class="sc">}</span><span class="ss">] mismatch for pair </span><span class="sc">{</span>pair<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Encoding reduces sequence length vs raw UTF-8</span></span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>raw_len <span class="op">=</span> <span class="bu">len</span>(<span class="bu">list</span>(<span class="bu">map</span>(<span class="bu">int</span>, text.encode(<span class="st">"utf-8"</span>))))</span>
+<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a>encoded <span class="op">=</span> naive_bpe.encode(text)</span>
+<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>(encoded) <span class="op">&lt;</span> raw_len, <span class="st">"Encoding should shorten the sequence"</span></span>
+<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Round-trip: decode(encode(text)) == text</span></span>
+<span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> naive_bpe.decode(naive_bpe.encode(text)) <span class="op">==</span> text, <span class="st">"Round-trip failed"</span></span>
+<span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-22"><a href="#cb35-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Encoding unseen text still produces a valid token sequence</span></span>
+<span id="cb35-23"><a href="#cb35-23" aria-hidden="true" tabindex="-1"></a>unseen <span class="op">=</span> <span class="st">"Hello world"</span></span>
+<span id="cb35-24"><a href="#cb35-24" aria-hidden="true" tabindex="-1"></a>encoded_unseen <span class="op">=</span> naive_bpe.encode(unseen)</span>
+<span id="cb35-25"><a href="#cb35-25" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">isinstance</span>(encoded_unseen, <span class="bu">list</span>)</span>
+<span id="cb35-26"><a href="#cb35-26" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">all</span>(<span class="bu">isinstance</span>(t, <span class="bu">int</span>) <span class="cf">for</span> t <span class="kw">in</span> encoded_unseen)</span>
+<span id="cb35-27"><a href="#cb35-27" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> naive_bpe.decode(encoded_unseen) <span class="op">==</span> unseen</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+</section>
+<section id="avoiding-merging-across-word-boundaries" class="level2">
+<h2 class="anchored" data-anchor-id="avoiding-merging-across-word-boundaries">Avoiding merging across word boundaries</h2>
+<p>We’ll use the regex from GPT-4 to split the text into words.</p>
+<div id="d85c2794" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>GPT4_SPLIT_PATTERN <span class="op">=</span> <span class="vs">r"""'</span><span class="ex">(</span><span class="fu">?i:</span><span class="pp">[sdmt]</span><span class="cf">|</span><span class="vs">ll</span><span class="cf">|</span><span class="vs">ve</span><span class="cf">|</span><span class="vs">re</span><span class="ex">)</span><span class="cf">|</span><span class="pp">[^</span><span class="ch">\r\n\p{L}\p{N}</span><span class="pp">]</span><span class="op">?+</span><span class="ch">\p{L}</span><span class="op">+</span><span class="cf">|</span><span class="ch">\p{N}</span><span class="op">{1,3}</span><span class="cf">|</span><span class="vs"> </span><span class="op">?</span><span class="pp">[^</span><span class="dv">\s</span><span class="ch">\p{L}\p{N}</span><span class="pp">]</span><span class="op">++</span><span class="pp">[</span><span class="ch">\r\n</span><span class="pp">]</span><span class="op">*</span><span class="cf">|</span><span class="dv">\s</span><span class="op">*</span><span class="pp">[</span><span class="ch">\r\n</span><span class="pp">]</span><span class="cf">|</span><span class="dv">\s</span><span class="op">+</span><span class="ex">(</span><span class="fu">?!</span><span class="dv">\S</span><span class="ex">)</span><span class="cf">|</span><span class="dv">\s</span><span class="op">+</span><span class="vs">"""</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="00428ea9" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>text_chunks <span class="op">=</span> re.findall(GPT4_SPLIT_PATTERN, text)</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(text_chunks)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>['Eius', ' eius', ' dolor', ' tempora', ' consectetur', ' sed', '.', ' Amet', ' quaerat', ' modi', ' aliquam', ' adipisci', ' amet', ' dolorem', ' eius', '.', ' Quiquia', ' adipisci', ' porro', ' dolorem', ' sit', ' quisquam', ' sit', ' porro', '.', ' Eius', ' neque', ' quaerat', ' est', ' velit', ' adipisci', ' ut', '.', ' Sit', ' modi', ' ipsum', ' est', ' dolor', '.\n\n', 'Consectetur', ' amet', ' magnam', ' consectetur', ' labore', ' labore', '.', ' Est', ' velit', ' aliquam', ' tempora', ' neque', ' porro', ' consectetur', ' magnam', '.', ' Porro', ' etincidunt', ' voluptatem', ' quisquam', '.', ' Labore', ' quaerat', ' dolorem', ' sit', ' amet', ' aliquam', ' sed', ' eius', '.', ' Amet', ' eius', ' consectetur', ' magnam', ' est', ' neque', '.', ' Dolore', ' labore', ' labore', ' dolorem', ' sed', ' est', '.\n\n', 'Quiquia', ' quisquam', ' dolore', ' porro', '.', ' Dolore', ' neque', ' magnam', ' est', ' quisquam', '.', ' Eius', ' sed', ' ipsum', ' voluptatem', ' ut', ' ut', ' aliquam', ' eius', '.', ' Velit', ' ipsum', ' magnam', ' est', '.', ' Dolorem', ' quaerat', ' sit', ' ipsum', '.', ' Quisquam', ' non', ' magnam', ' quisquam', ' neque', '.', ' Est', ' dolor', ' eius', ' tempora', ' porro', '.', ' Est', ' tempora', ' quaerat', ' modi', ' quaerat', ' magnam', ' labore', ' eius', '.', ' Numquam', ' non', ' amet', ' ut', ' aliquam', '.', ' Dolor', ' quisquam', ' dolore', ' velit', '.']</code></pre>
+</div>
+</div>
+<p>When we happy to tokenise across any part of the text we encoded it all at once. but now we have a list of “text chunks”.</p>
+<div id="87987fed" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>tokenised_chunks <span class="op">=</span> [<span class="bu">list</span>(ch.encode(<span class="st">"utf-8"</span>)) <span class="cf">for</span> ch <span class="kw">in</span> text_chunks]</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tokenised_chunks)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[69, 105, 117, 115], [32, 101, 105, 117, 115], [32, 100, 111, 108, 111, 114], [32, 116, 101, 109, 112, 111, 114, 97], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 115, 101, 100], [46], [32, 65, 109, 101, 116], [32, 113, 117, 97, 101, 114, 97, 116], [32, 109, 111, 100, 105], [32, 97, 108, 105, 113, 117, 97, 109], [32, 97, 100, 105, 112, 105, 115, 99, 105], [32, 97, 109, 101, 116], [32, 100, 111, 108, 111, 114, 101, 109], [32, 101, 105, 117, 115], [46], [32, 81, 117, 105, 113, 117, 105, 97], [32, 97, 100, 105, 112, 105, 115, 99, 105], [32, 112, 111, 114, 114, 111], [32, 100, 111, 108, 111, 114, 101, 109], [32, 115, 105, 116], [32, 113, 117, 105, 115, 113, 117, 97, 109], [32, 115, 105, 116], [32, 112, 111, 114, 114, 111], [46], [32, 69, 105, 117, 115], [32, 110, 101, 113, 117, 101], [32, 113, 117, 97, 101, 114, 97, 116], [32, 101, 115, 116], [32, 118, 101, 108, 105, 116], [32, 97, 100, 105, 112, 105, 115, 99, 105], [32, 117, 116], [46], [32, 83, 105, 116], [32, 109, 111, 100, 105], [32, 105, 112, 115, 117, 109], [32, 101, 115, 116], [32, 100, 111, 108, 111, 114], [46, 10, 10], [67, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 97, 109, 101, 116], [32, 109, 97, 103, 110, 97, 109], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 108, 97, 98, 111, 114, 101], [32, 108, 97, 98, 111, 114, 101], [46], [32, 69, 115, 116], [32, 118, 101, 108, 105, 116], [32, 97, 108, 105, 113, 117, 97, 109], [32, 116, 101, 109, 112, 111, 114, 97], [32, 110, 101, 113, 117, 101], [32, 112, 111, 114, 114, 111], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 109, 97, 103, 110, 97, 109], [46], [32, 80, 111, 114, 114, 111], [32, 101, 116, 105, 110, 99, 105, 100, 117, 110, 116], [32, 118, 111, 108, 117, 112, 116, 97, 116, 101, 109], [32, 113, 117, 105, 115, 113, 117, 97, 109], [46], [32, 76, 97, 98, 111, 114, 101], [32, 113, 117, 97, 101, 114, 97, 116], [32, 100, 111, 108, 111, 114, 101, 109], [32, 115, 105, 116], [32, 97, 109, 101, 116], [32, 97, 108, 105, 113, 117, 97, 109], [32, 115, 101, 100], [32, 101, 105, 117, 115], [46], [32, 65, 109, 101, 116], [32, 101, 105, 117, 115], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 109, 97, 103, 110, 97, 109], [32, 101, 115, 116], [32, 110, 101, 113, 117, 101], [46], [32, 68, 111, 108, 111, 114, 101], [32, 108, 97, 98, 111, 114, 101], [32, 108, 97, 98, 111, 114, 101], [32, 100, 111, 108, 111, 114, 101, 109], [32, 115, 101, 100], [32, 101, 115, 116], [46, 10, 10], [81, 117, 105, 113, 117, 105, 97], [32, 113, 117, 105, 115, 113, 117, 97, 109], [32, 100, 111, 108, 111, 114, 101], [32, 112, 111, 114, 114, 111], [46], [32, 68, 111, 108, 111, 114, 101], [32, 110, 101, 113, 117, 101], [32, 109, 97, 103, 110, 97, 109], [32, 101, 115, 116], [32, 113, 117, 105, 115, 113, 117, 97, 109], [46], [32, 69, 105, 117, 115], [32, 115, 101, 100], [32, 105, 112, 115, 117, 109], [32, 118, 111, 108, 117, 112, 116, 97, 116, 101, 109], [32, 117, 116], [32, 117, 116], [32, 97, 108, 105, 113, 117, 97, 109], [32, 101, 105, 117, 115], [46], [32, 86, 101, 108, 105, 116], [32, 105, 112, 115, 117, 109], [32, 109, 97, 103, 110, 97, 109], [32, 101, 115, 116], [46], [32, 68, 111, 108, 111, 114, 101, 109], [32, 113, 117, 97, 101, 114, 97, 116], [32, 115, 105, 116], [32, 105, 112, 115, 117, 109], [46], [32, 81, 117, 105, 115, 113, 117, 97, 109], [32, 110, 111, 110], [32, 109, 97, 103, 110, 97, 109], [32, 113, 117, 105, 115, 113, 117, 97, 109], [32, 110, 101, 113, 117, 101], [46], [32, 69, 115, 116], [32, 100, 111, 108, 111, 114], [32, 101, 105, 117, 115], [32, 116, 101, 109, 112, 111, 114, 97], [32, 112, 111, 114, 114, 111], [46], [32, 69, 115, 116], [32, 116, 101, 109, 112, 111, 114, 97], [32, 113, 117, 97, 101, 114, 97, 116], [32, 109, 111, 100, 105], [32, 113, 117, 97, 101, 114, 97, 116], [32, 109, 97, 103, 110, 97, 109], [32, 108, 97, 98, 111, 114, 101], [32, 101, 105, 117, 115], [46], [32, 78, 117, 109, 113, 117, 97, 109], [32, 110, 111, 110], [32, 97, 109, 101, 116], [32, 117, 116], [32, 97, 108, 105, 113, 117, 97, 109], [46], [32, 68, 111, 108, 111, 114], [32, 113, 117, 105, 115, 113, 117, 97, 109], [32, 100, 111, 108, 111, 114, 101], [32, 118, 101, 108, 105, 116], [46]]</code></pre>
+</div>
+</div>
+<div id="a1f0ae33" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Number of chunks: </span><span class="sc">{</span><span class="bu">len</span>(tokenised_chunks)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Number of tokens: </span><span class="sc">{</span><span class="bu">sum</span>([<span class="bu">len</span>(tc) <span class="cf">for</span> tc <span class="kw">in</span> tokenised_chunks])<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Number of chunks: 145
+Number of tokens: 833</code></pre>
+</div>
+</div>
+<p>We can still reuse the functions we created before. But we’ll add some tweaks to the training loop to handle the fact that we’re now operating on a list of chunks.</p>
+<div id="5d4f3acb" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>VOCAB_SIZE <span class="op">=</span> <span class="dv">260</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>merges: <span class="bu">dict</span>[<span class="bu">tuple</span>[<span class="bu">int</span>, <span class="bu">int</span>], <span class="bu">int</span>] <span class="op">=</span> {}</span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>tokens <span class="op">=</span> get_tokens(text)</span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">256</span>, VOCAB_SIZE):</span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>    pair_counts <span class="op">=</span> {}</span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> tc <span class="kw">in</span> tokenised_chunks:</span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> pair, count <span class="kw">in</span> get_pair_counts(tc).items():</span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>            pair_counts[pair] <span class="op">=</span> pair_counts.get(pair, <span class="dv">0</span>) <span class="op">+</span> count</span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>    most_common_pair <span class="op">=</span> <span class="bu">max</span>(pair_counts, key<span class="op">=</span><span class="kw">lambda</span> p: pair_counts[p])</span>
+<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>    tokenised_chunks <span class="op">=</span> [merge_pair(tc, most_common_pair, i) <span class="cf">for</span> tc <span class="kw">in</span> tokenised_chunks]</span>
+<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>    merges[most_common_pair] <span class="op">=</span> i</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="0382778a" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Merges: </span><span class="sc">{</span>merges<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Number of chunks: </span><span class="sc">{</span><span class="bu">len</span>(tokenised_chunks)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Number of tokens: </span><span class="sc">{</span><span class="bu">sum</span>([<span class="bu">len</span>(tc) <span class="cf">for</span> tc <span class="kw">in</span> tokenised_chunks])<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Merges: {(113, 117): 256, (111, 114): 257, (97, 109): 258, (111, 108): 259}
+Number of chunks: 145
+Number of tokens: 733</code></pre>
+</div>
+</div>
+<p>We still get a good amount of compression, even with the restriction of only merging within chunks.</p>
+<div id="ad96eea6" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tokenised_chunks)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[69, 105, 117, 115], [32, 101, 105, 117, 115], [32, 100, 259, 257], [32, 116, 101, 109, 112, 257, 97], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 115, 101, 100], [46], [32, 65, 109, 101, 116], [32, 256, 97, 101, 114, 97, 116], [32, 109, 111, 100, 105], [32, 97, 108, 105, 256, 258], [32, 97, 100, 105, 112, 105, 115, 99, 105], [32, 258, 101, 116], [32, 100, 259, 257, 101, 109], [32, 101, 105, 117, 115], [46], [32, 81, 117, 105, 256, 105, 97], [32, 97, 100, 105, 112, 105, 115, 99, 105], [32, 112, 257, 114, 111], [32, 100, 259, 257, 101, 109], [32, 115, 105, 116], [32, 256, 105, 115, 256, 258], [32, 115, 105, 116], [32, 112, 257, 114, 111], [46], [32, 69, 105, 117, 115], [32, 110, 101, 256, 101], [32, 256, 97, 101, 114, 97, 116], [32, 101, 115, 116], [32, 118, 101, 108, 105, 116], [32, 97, 100, 105, 112, 105, 115, 99, 105], [32, 117, 116], [46], [32, 83, 105, 116], [32, 109, 111, 100, 105], [32, 105, 112, 115, 117, 109], [32, 101, 115, 116], [32, 100, 259, 257], [46, 10, 10], [67, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 258, 101, 116], [32, 109, 97, 103, 110, 258], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 108, 97, 98, 257, 101], [32, 108, 97, 98, 257, 101], [46], [32, 69, 115, 116], [32, 118, 101, 108, 105, 116], [32, 97, 108, 105, 256, 258], [32, 116, 101, 109, 112, 257, 97], [32, 110, 101, 256, 101], [32, 112, 257, 114, 111], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 109, 97, 103, 110, 258], [46], [32, 80, 257, 114, 111], [32, 101, 116, 105, 110, 99, 105, 100, 117, 110, 116], [32, 118, 259, 117, 112, 116, 97, 116, 101, 109], [32, 256, 105, 115, 256, 258], [46], [32, 76, 97, 98, 257, 101], [32, 256, 97, 101, 114, 97, 116], [32, 100, 259, 257, 101, 109], [32, 115, 105, 116], [32, 258, 101, 116], [32, 97, 108, 105, 256, 258], [32, 115, 101, 100], [32, 101, 105, 117, 115], [46], [32, 65, 109, 101, 116], [32, 101, 105, 117, 115], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 109, 97, 103, 110, 258], [32, 101, 115, 116], [32, 110, 101, 256, 101], [46], [32, 68, 259, 257, 101], [32, 108, 97, 98, 257, 101], [32, 108, 97, 98, 257, 101], [32, 100, 259, 257, 101, 109], [32, 115, 101, 100], [32, 101, 115, 116], [46, 10, 10], [81, 117, 105, 256, 105, 97], [32, 256, 105, 115, 256, 258], [32, 100, 259, 257, 101], [32, 112, 257, 114, 111], [46], [32, 68, 259, 257, 101], [32, 110, 101, 256, 101], [32, 109, 97, 103, 110, 258], [32, 101, 115, 116], [32, 256, 105, 115, 256, 258], [46], [32, 69, 105, 117, 115], [32, 115, 101, 100], [32, 105, 112, 115, 117, 109], [32, 118, 259, 117, 112, 116, 97, 116, 101, 109], [32, 117, 116], [32, 117, 116], [32, 97, 108, 105, 256, 258], [32, 101, 105, 117, 115], [46], [32, 86, 101, 108, 105, 116], [32, 105, 112, 115, 117, 109], [32, 109, 97, 103, 110, 258], [32, 101, 115, 116], [46], [32, 68, 259, 257, 101, 109], [32, 256, 97, 101, 114, 97, 116], [32, 115, 105, 116], [32, 105, 112, 115, 117, 109], [46], [32, 81, 117, 105, 115, 256, 258], [32, 110, 111, 110], [32, 109, 97, 103, 110, 258], [32, 256, 105, 115, 256, 258], [32, 110, 101, 256, 101], [46], [32, 69, 115, 116], [32, 100, 259, 257], [32, 101, 105, 117, 115], [32, 116, 101, 109, 112, 257, 97], [32, 112, 257, 114, 111], [46], [32, 69, 115, 116], [32, 116, 101, 109, 112, 257, 97], [32, 256, 97, 101, 114, 97, 116], [32, 109, 111, 100, 105], [32, 256, 97, 101, 114, 97, 116], [32, 109, 97, 103, 110, 258], [32, 108, 97, 98, 257, 101], [32, 101, 105, 117, 115], [46], [32, 78, 117, 109, 256, 258], [32, 110, 111, 110], [32, 258, 101, 116], [32, 117, 116], [32, 97, 108, 105, 256, 258], [46], [32, 68, 259, 257], [32, 256, 105, 115, 256, 258], [32, 100, 259, 257, 101], [32, 118, 101, 108, 105, 116], [46]]</code></pre>
+</div>
+</div>
+<p>Let’s build our vocab from the merges again.</p>
+<div id="c5d448a8" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>vocab <span class="op">=</span> {i: <span class="bu">bytes</span>([i]) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">256</span>)}</span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> pair, idx <span class="kw">in</span> merges.items():</span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>    vocab[idx] <span class="op">=</span> vocab[pair[<span class="dv">0</span>]] <span class="op">+</span> vocab[pair[<span class="dv">1</span>]]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<section id="encoding-with-chunks" class="level3">
+<h3 class="anchored" data-anchor-id="encoding-with-chunks">Encoding with chunks</h3>
+<p>Having not merged across chunks, we also need to encode each chunk independently.</p>
+<div id="f4caed1d" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>encoded_tokens <span class="op">=</span> []</span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> tc <span class="kw">in</span> text_chunks:</span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>    encoded_tokens.append(encode(tc))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="c852d818" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(encoded_tokens)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[69, 105, 117, 115], [32, 101, 105, 117, 115], [32, 100, 259, 257], [32, 116, 101, 109, 112, 257, 97], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 115, 101, 100], [46], [32, 65, 109, 101, 116], [32, 256, 97, 101, 114, 97, 116], [32, 109, 111, 100, 105], [32, 97, 108, 105, 256, 258], [32, 97, 100, 105, 112, 105, 115, 99, 105], [32, 258, 101, 116], [32, 100, 259, 257, 101, 109], [32, 101, 105, 117, 115], [46], [32, 81, 117, 105, 256, 105, 97], [32, 97, 100, 105, 112, 105, 115, 99, 105], [32, 112, 257, 114, 111], [32, 100, 259, 257, 101, 109], [32, 115, 105, 116], [32, 256, 105, 115, 256, 258], [32, 115, 105, 116], [32, 112, 257, 114, 111], [46], [32, 69, 105, 117, 115], [32, 110, 101, 256, 101], [32, 256, 97, 101, 114, 97, 116], [32, 101, 115, 116], [32, 118, 101, 108, 105, 116], [32, 97, 100, 105, 112, 105, 115, 99, 105], [32, 117, 116], [46], [32, 83, 105, 116], [32, 109, 111, 100, 105], [32, 105, 112, 115, 117, 109], [32, 101, 115, 116], [32, 100, 259, 257], [46, 10, 10], [67, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 258, 101, 116], [32, 109, 97, 103, 110, 258], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 108, 97, 98, 257, 101], [32, 108, 97, 98, 257, 101], [46], [32, 69, 115, 116], [32, 118, 101, 108, 105, 116], [32, 97, 108, 105, 256, 258], [32, 116, 101, 109, 112, 257, 97], [32, 110, 101, 256, 101], [32, 112, 257, 114, 111], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 109, 97, 103, 110, 258], [46], [32, 80, 257, 114, 111], [32, 101, 116, 105, 110, 99, 105, 100, 117, 110, 116], [32, 118, 259, 117, 112, 116, 97, 116, 101, 109], [32, 256, 105, 115, 256, 258], [46], [32, 76, 97, 98, 257, 101], [32, 256, 97, 101, 114, 97, 116], [32, 100, 259, 257, 101, 109], [32, 115, 105, 116], [32, 258, 101, 116], [32, 97, 108, 105, 256, 258], [32, 115, 101, 100], [32, 101, 105, 117, 115], [46], [32, 65, 109, 101, 116], [32, 101, 105, 117, 115], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 109, 97, 103, 110, 258], [32, 101, 115, 116], [32, 110, 101, 256, 101], [46], [32, 68, 259, 257, 101], [32, 108, 97, 98, 257, 101], [32, 108, 97, 98, 257, 101], [32, 100, 259, 257, 101, 109], [32, 115, 101, 100], [32, 101, 115, 116], [46, 10, 10], [81, 117, 105, 256, 105, 97], [32, 256, 105, 115, 256, 258], [32, 100, 259, 257, 101], [32, 112, 257, 114, 111], [46], [32, 68, 259, 257, 101], [32, 110, 101, 256, 101], [32, 109, 97, 103, 110, 258], [32, 101, 115, 116], [32, 256, 105, 115, 256, 258], [46], [32, 69, 105, 117, 115], [32, 115, 101, 100], [32, 105, 112, 115, 117, 109], [32, 118, 259, 117, 112, 116, 97, 116, 101, 109], [32, 117, 116], [32, 117, 116], [32, 97, 108, 105, 256, 258], [32, 101, 105, 117, 115], [46], [32, 86, 101, 108, 105, 116], [32, 105, 112, 115, 117, 109], [32, 109, 97, 103, 110, 258], [32, 101, 115, 116], [46], [32, 68, 259, 257, 101, 109], [32, 256, 97, 101, 114, 97, 116], [32, 115, 105, 116], [32, 105, 112, 115, 117, 109], [46], [32, 81, 117, 105, 115, 256, 258], [32, 110, 111, 110], [32, 109, 97, 103, 110, 258], [32, 256, 105, 115, 256, 258], [32, 110, 101, 256, 101], [46], [32, 69, 115, 116], [32, 100, 259, 257], [32, 101, 105, 117, 115], [32, 116, 101, 109, 112, 257, 97], [32, 112, 257, 114, 111], [46], [32, 69, 115, 116], [32, 116, 101, 109, 112, 257, 97], [32, 256, 97, 101, 114, 97, 116], [32, 109, 111, 100, 105], [32, 256, 97, 101, 114, 97, 116], [32, 109, 97, 103, 110, 258], [32, 108, 97, 98, 257, 101], [32, 101, 105, 117, 115], [46], [32, 78, 117, 109, 256, 258], [32, 110, 111, 110], [32, 258, 101, 116], [32, 117, 116], [32, 97, 108, 105, 256, 258], [46], [32, 68, 259, 257], [32, 256, 105, 115, 256, 258], [32, 100, 259, 257, 101], [32, 118, 101, 108, 105, 116], [46]]</code></pre>
+</div>
+</div>
+</section>
+<section id="decoding-with-chunks" class="level3">
+<h3 class="anchored" data-anchor-id="decoding-with-chunks">Decoding with chunks</h3>
+<div id="dd83dd9e" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb52"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>decoded_tokens <span class="op">=</span> [decode(tc) <span class="cf">for</span> tc <span class="kw">in</span> encoded_tokens]</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>decoded_text <span class="op">=</span> <span class="st">""</span>.join(decoded_tokens)</span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(decoded_text)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Eius eius dm t  tempt a consectetur sed. Amet quaerat modi aliquor adipisci oret dm t em eius. Quiquia adipisci pt ro dm t em sit quisquor sit pt ro. Eius neque quaerat est velit adipisci ut. Sit modi ipsum est dm t .
+
+Consectetur oret magnor consectetur labt e labt e. Est velit aliquor tempt a neque pt ro consectetur magnor. Pt ro etincidunt vm uptatem quisquor. Labt e quaerat dm t em sit oret aliquor sed eius. Amet eius consectetur magnor est neque. Dm t e labt e labt e dm t em sed est.
+
+Quiquia quisquor dm t e pt ro. Dm t e neque magnor est quisquor. Eius sed ipsum vm uptatem ut ut aliquor eius. Velit ipsum magnor est. Dm t em quaerat sit ipsum. Quisquor non magnor quisquor neque. Est dm t  eius tempt a pt ro. Est tempt a quaerat modi quaerat magnor labt e eius. Numquor non oret ut aliquor. Dm t  quisquor dm t e velit.</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="as-a-class-1" class="level2">
+<h2 class="anchored" data-anchor-id="as-a-class-1">As a class</h2>
+<hr>
+<section id="chunkedbpe" class="level3">
+<h3 class="anchored" data-anchor-id="chunkedbpe">ChunkedBPE</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb54"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ChunkedBPE(</span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a>    vocab_size:<span class="bu">int</span></span>
+<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a>):</span>
+<span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Initialize self. See help(type(self)) for accurate signature.</em></p>
+<div id="2f46b90f" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb55"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> lorem.text()</span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(text)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Sit est neque etincidunt dolorem magnam non. Eius magnam quaerat labore. Etincidunt sit etincidunt adipisci voluptatem sed magnam est. Quaerat sed ut tempora. Quiquia tempora non voluptatem. Ut velit eius quiquia velit labore. Quisquam dolorem quiquia est sed. Quisquam consectetur quisquam quisquam aliquam. Velit neque aliquam quaerat labore tempora. Amet etincidunt ipsum tempora modi.
+
+Dolor velit porro labore numquam. Est voluptatem dolore est voluptatem non velit etincidunt. Velit consectetur neque amet dolor ut. Sed tempora sed magnam velit. Labore amet velit magnam adipisci est porro consectetur. Labore sed tempora sed est quaerat magnam.
+
+Consectetur sed eius non adipisci quiquia. Ipsum quiquia eius quisquam amet quisquam voluptatem neque. Quisquam modi consectetur dolor aliquam aliquam. Non consectetur consectetur eius porro dolor. Neque labore sed tempora sit porro modi. Tempora tempora dolor modi quisquam consectetur voluptatem non. Modi est aliquam sit labore dolorem neque neque. Labore consectetur sed labore porro. Aliquam magnam est dolorem consectetur voluptatem. Amet sed dolorem quisquam quisquam quiquia adipisci.
+
+Eius dolor velit quaerat dolorem amet. Dolorem quaerat dolorem voluptatem eius ipsum ut dolor. Adipisci est dolor dolor porro est velit dolore. Sed adipisci dolor adipisci. Velit velit eius quaerat ipsum adipisci.
+
+Aliquam dolor tempora modi numquam consectetur. Non neque ut labore. Quaerat consectetur neque numquam eius quiquia aliquam tempora. Etincidunt neque quisquam adipisci aliquam non magnam modi. Non sit neque amet. Ipsum quiquia dolor amet.</code></pre>
+</div>
+</div>
+<div id="dfcf39fb" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb57"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a>chunked_bpe <span class="op">=</span> ChunkedBPE(vocab_size<span class="op">=</span><span class="dv">260</span>)</span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a>chunked_bpe.train(text)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="2326e93d" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb58"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a>encoded_text <span class="op">=</span> chunked_bpe.encode(text)</span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(encoded_text)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[83, 105, 116], [32, 101, 115, 116], [32, 110, 101, 256, 101], [32, 101, 116, 105, 110, 99, 105, 100, 117, 110, 116], [32, 100, 259, 257, 101, 109], [32, 109, 97, 103, 110, 258], [32, 110, 111, 110], [46], [32, 69, 105, 117, 115], [32, 109, 97, 103, 110, 258], [32, 256, 97, 101, 114, 97, 116], [32, 108, 97, 98, 257, 101], [46], [32, 69, 116, 105, 110, 99, 105, 100, 117, 110, 116], [32, 115, 105, 116], [32, 101, 116, 105, 110, 99, 105, 100, 117, 110, 116], [32, 97, 100, 105, 112, 105, 115, 99, 105], [32, 118, 259, 117, 112, 116, 97, 116, 101, 109], [32, 115, 101, 100], [32, 109, 97, 103, 110, 258], [32, 101, 115, 116], [46], [32, 81, 117, 97, 101, 114, 97, 116], [32, 115, 101, 100], [32, 117, 116], [32, 116, 101, 109, 112, 257, 97], [46], [32, 81, 117, 105, 256, 105, 97], [32, 116, 101, 109, 112, 257, 97], [32, 110, 111, 110], [32, 118, 259, 117, 112, 116, 97, 116, 101, 109], [46], [32, 85, 116], [32, 118, 101, 108, 105, 116], [32, 101, 105, 117, 115], [32, 256, 105, 256, 105, 97], [32, 118, 101, 108, 105, 116], [32, 108, 97, 98, 257, 101], [46], [32, 81, 117, 105, 115, 256, 258], [32, 100, 259, 257, 101, 109], [32, 256, 105, 256, 105, 97], [32, 101, 115, 116], [32, 115, 101, 100], [46], [32, 81, 117, 105, 115, 256, 258], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 256, 105, 115, 256, 258], [32, 256, 105, 115, 256, 258], [32, 97, 108, 105, 256, 258], [46], [32, 86, 101, 108, 105, 116], [32, 110, 101, 256, 101], [32, 97, 108, 105, 256, 258], [32, 256, 97, 101, 114, 97, 116], [32, 108, 97, 98, 257, 101], [32, 116, 101, 109, 112, 257, 97], [46], [32, 65, 109, 101, 116], [32, 101, 116, 105, 110, 99, 105, 100, 117, 110, 116], [32, 105, 112, 115, 117, 109], [32, 116, 101, 109, 112, 257, 97], [32, 109, 111, 100, 105], [46, 10, 10], [68, 259, 257], [32, 118, 101, 108, 105, 116], [32, 112, 257, 114, 111], [32, 108, 97, 98, 257, 101], [32, 110, 117, 109, 256, 258], [46], [32, 69, 115, 116], [32, 118, 259, 117, 112, 116, 97, 116, 101, 109], [32, 100, 259, 257, 101], [32, 101, 115, 116], [32, 118, 259, 117, 112, 116, 97, 116, 101, 109], [32, 110, 111, 110], [32, 118, 101, 108, 105, 116], [32, 101, 116, 105, 110, 99, 105, 100, 117, 110, 116], [46], [32, 86, 101, 108, 105, 116], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 110, 101, 256, 101], [32, 258, 101, 116], [32, 100, 259, 257], [32, 117, 116], [46], [32, 83, 101, 100], [32, 116, 101, 109, 112, 257, 97], [32, 115, 101, 100], [32, 109, 97, 103, 110, 258], [32, 118, 101, 108, 105, 116], [46], [32, 76, 97, 98, 257, 101], [32, 258, 101, 116], [32, 118, 101, 108, 105, 116], [32, 109, 97, 103, 110, 258], [32, 97, 100, 105, 112, 105, 115, 99, 105], [32, 101, 115, 116], [32, 112, 257, 114, 111], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [46], [32, 76, 97, 98, 257, 101], [32, 115, 101, 100], [32, 116, 101, 109, 112, 257, 97], [32, 115, 101, 100], [32, 101, 115, 116], [32, 256, 97, 101, 114, 97, 116], [32, 109, 97, 103, 110, 258], [46, 10, 10], [67, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 115, 101, 100], [32, 101, 105, 117, 115], [32, 110, 111, 110], [32, 97, 100, 105, 112, 105, 115, 99, 105], [32, 256, 105, 256, 105, 97], [46], [32, 73, 112, 115, 117, 109], [32, 256, 105, 256, 105, 97], [32, 101, 105, 117, 115], [32, 256, 105, 115, 256, 258], [32, 258, 101, 116], [32, 256, 105, 115, 256, 258], [32, 118, 259, 117, 112, 116, 97, 116, 101, 109], [32, 110, 101, 256, 101], [46], [32, 81, 117, 105, 115, 256, 258], [32, 109, 111, 100, 105], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 100, 259, 257], [32, 97, 108, 105, 256, 258], [32, 97, 108, 105, 256, 258], [46], [32, 78, 111, 110], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 101, 105, 117, 115], [32, 112, 257, 114, 111], [32, 100, 259, 257], [46], [32, 78, 101, 256, 101], [32, 108, 97, 98, 257, 101], [32, 115, 101, 100], [32, 116, 101, 109, 112, 257, 97], [32, 115, 105, 116], [32, 112, 257, 114, 111], [32, 109, 111, 100, 105], [46], [32, 84, 101, 109, 112, 257, 97], [32, 116, 101, 109, 112, 257, 97], [32, 100, 259, 257], [32, 109, 111, 100, 105], [32, 256, 105, 115, 256, 258], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 118, 259, 117, 112, 116, 97, 116, 101, 109], [32, 110, 111, 110], [46], [32, 77, 111, 100, 105], [32, 101, 115, 116], [32, 97, 108, 105, 256, 258], [32, 115, 105, 116], [32, 108, 97, 98, 257, 101], [32, 100, 259, 257, 101, 109], [32, 110, 101, 256, 101], [32, 110, 101, 256, 101], [46], [32, 76, 97, 98, 257, 101], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 115, 101, 100], [32, 108, 97, 98, 257, 101], [32, 112, 257, 114, 111], [46], [32, 65, 108, 105, 256, 258], [32, 109, 97, 103, 110, 258], [32, 101, 115, 116], [32, 100, 259, 257, 101, 109], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 118, 259, 117, 112, 116, 97, 116, 101, 109], [46], [32, 65, 109, 101, 116], [32, 115, 101, 100], [32, 100, 259, 257, 101, 109], [32, 256, 105, 115, 256, 258], [32, 256, 105, 115, 256, 258], [32, 256, 105, 256, 105, 97], [32, 97, 100, 105, 112, 105, 115, 99, 105], [46, 10, 10], [69, 105, 117, 115], [32, 100, 259, 257], [32, 118, 101, 108, 105, 116], [32, 256, 97, 101, 114, 97, 116], [32, 100, 259, 257, 101, 109], [32, 258, 101, 116], [46], [32, 68, 259, 257, 101, 109], [32, 256, 97, 101, 114, 97, 116], [32, 100, 259, 257, 101, 109], [32, 118, 259, 117, 112, 116, 97, 116, 101, 109], [32, 101, 105, 117, 115], [32, 105, 112, 115, 117, 109], [32, 117, 116], [32, 100, 259, 257], [46], [32, 65, 100, 105, 112, 105, 115, 99, 105], [32, 101, 115, 116], [32, 100, 259, 257], [32, 100, 259, 257], [32, 112, 257, 114, 111], [32, 101, 115, 116], [32, 118, 101, 108, 105, 116], [32, 100, 259, 257, 101], [46], [32, 83, 101, 100], [32, 97, 100, 105, 112, 105, 115, 99, 105], [32, 100, 259, 257], [32, 97, 100, 105, 112, 105, 115, 99, 105], [46], [32, 86, 101, 108, 105, 116], [32, 118, 101, 108, 105, 116], [32, 101, 105, 117, 115], [32, 256, 97, 101, 114, 97, 116], [32, 105, 112, 115, 117, 109], [32, 97, 100, 105, 112, 105, 115, 99, 105], [46, 10, 10], [65, 108, 105, 256, 258], [32, 100, 259, 257], [32, 116, 101, 109, 112, 257, 97], [32, 109, 111, 100, 105], [32, 110, 117, 109, 256, 258], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [46], [32, 78, 111, 110], [32, 110, 101, 256, 101], [32, 117, 116], [32, 108, 97, 98, 257, 101], [46], [32, 81, 117, 97, 101, 114, 97, 116], [32, 99, 111, 110, 115, 101, 99, 116, 101, 116, 117, 114], [32, 110, 101, 256, 101], [32, 110, 117, 109, 256, 258], [32, 101, 105, 117, 115], [32, 256, 105, 256, 105, 97], [32, 97, 108, 105, 256, 258], [32, 116, 101, 109, 112, 257, 97], [46], [32, 69, 116, 105, 110, 99, 105, 100, 117, 110, 116], [32, 110, 101, 256, 101], [32, 256, 105, 115, 256, 258], [32, 97, 100, 105, 112, 105, 115, 99, 105], [32, 97, 108, 105, 256, 258], [32, 110, 111, 110], [32, 109, 97, 103, 110, 258], [32, 109, 111, 100, 105], [46], [32, 78, 111, 110], [32, 115, 105, 116], [32, 110, 101, 256, 101], [32, 258, 101, 116], [46], [32, 73, 112, 115, 117, 109], [32, 256, 105, 256, 105, 97], [32, 100, 259, 257], [32, 258, 101, 116], [46]]</code></pre>
+</div>
+</div>
+<div id="f678734e" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb60"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>decoded_text <span class="op">=</span> chunked_bpe.decode(encoded_text)</span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(decoded_text)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Sit est neque etincidunt dolorem magnam non. Eius magnam quaerat labore. Etincidunt sit etincidunt adipisci voluptatem sed magnam est. Quaerat sed ut tempora. Quiquia tempora non voluptatem. Ut velit eius quiquia velit labore. Quisquam dolorem quiquia est sed. Quisquam consectetur quisquam quisquam aliquam. Velit neque aliquam quaerat labore tempora. Amet etincidunt ipsum tempora modi.
+
+Dolor velit porro labore numquam. Est voluptatem dolore est voluptatem non velit etincidunt. Velit consectetur neque amet dolor ut. Sed tempora sed magnam velit. Labore amet velit magnam adipisci est porro consectetur. Labore sed tempora sed est quaerat magnam.
+
+Consectetur sed eius non adipisci quiquia. Ipsum quiquia eius quisquam amet quisquam voluptatem neque. Quisquam modi consectetur dolor aliquam aliquam. Non consectetur consectetur eius porro dolor. Neque labore sed tempora sit porro modi. Tempora tempora dolor modi quisquam consectetur voluptatem non. Modi est aliquam sit labore dolorem neque neque. Labore consectetur sed labore porro. Aliquam magnam est dolorem consectetur voluptatem. Amet sed dolorem quisquam quisquam quiquia adipisci.
+
+Eius dolor velit quaerat dolorem amet. Dolorem quaerat dolorem voluptatem eius ipsum ut dolor. Adipisci est dolor dolor porro est velit dolore. Sed adipisci dolor adipisci. Velit velit eius quaerat ipsum adipisci.
+
+Aliquam dolor tempora modi numquam consectetur. Non neque ut labore. Quaerat consectetur neque numquam eius quiquia aliquam tempora. Etincidunt neque quisquam adipisci aliquam non magnam modi. Non sit neque amet. Ipsum quiquia dolor amet.</code></pre>
+</div>
+</div>
+</section>
+<section id="tests-1" class="level3">
+<h3 class="anchored" data-anchor-id="tests-1">Tests</h3>
+<div id="bc099b85" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb62"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a>chunked_bpe_test <span class="op">=</span> ChunkedBPE(vocab_size<span class="op">=</span><span class="dv">280</span>)</span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>chunked_bpe_test.train(text)</span>
+<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Vocab has the right size</span></span>
+<span id="cb62-5"><a href="#cb62-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>(chunked_bpe_test.vocab) <span class="op">==</span> <span class="dv">280</span>, <span class="ss">f"Expected 280, got </span><span class="sc">{</span><span class="bu">len</span>(chunked_bpe_test.vocab)<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb62-6"><a href="#cb62-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb62-7"><a href="#cb62-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Base vocab entries are single bytes</span></span>
+<span id="cb62-8"><a href="#cb62-8" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> chunked_bpe_test.vocab[<span class="dv">65</span>] <span class="op">==</span> <span class="st">b"A"</span></span>
+<span id="cb62-9"><a href="#cb62-9" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> chunked_bpe_test.vocab[<span class="dv">32</span>] <span class="op">==</span> <span class="st">b" "</span></span>
+<span id="cb62-10"><a href="#cb62-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb62-11"><a href="#cb62-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Merged vocab entries are byte concatenations of their component tokens</span></span>
+<span id="cb62-12"><a href="#cb62-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> pair, idx <span class="kw">in</span> chunked_bpe_test.merges.items():</span>
+<span id="cb62-13"><a href="#cb62-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> chunked_bpe_test.vocab[idx] <span class="op">==</span> chunked_bpe_test.vocab[pair[<span class="dv">0</span>]] <span class="op">+</span> chunked_bpe_test.vocab[pair[<span class="dv">1</span>]], (</span>
+<span id="cb62-14"><a href="#cb62-14" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"vocab[</span><span class="sc">{</span>idx<span class="sc">}</span><span class="ss">] mismatch for pair </span><span class="sc">{</span>pair<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb62-15"><a href="#cb62-15" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb62-16"><a href="#cb62-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb62-17"><a href="#cb62-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Encoding compresses: total tokens across chunks should be fewer than raw UTF-8 bytes</span></span>
+<span id="cb62-18"><a href="#cb62-18" aria-hidden="true" tabindex="-1"></a>raw_len <span class="op">=</span> <span class="bu">len</span>(<span class="bu">list</span>(<span class="bu">map</span>(<span class="bu">int</span>, text.encode(<span class="st">"utf-8"</span>))))</span>
+<span id="cb62-19"><a href="#cb62-19" aria-hidden="true" tabindex="-1"></a>encoded <span class="op">=</span> chunked_bpe_test.encode(text)</span>
+<span id="cb62-20"><a href="#cb62-20" aria-hidden="true" tabindex="-1"></a>total_encoded <span class="op">=</span> <span class="bu">sum</span>(<span class="bu">len</span>(chunk) <span class="cf">for</span> chunk <span class="kw">in</span> encoded)</span>
+<span id="cb62-21"><a href="#cb62-21" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> total_encoded <span class="op">&lt;</span> raw_len, <span class="ss">f"Expected compression: </span><span class="sc">{</span>total_encoded<span class="sc">}</span><span class="ss"> &gt;= </span><span class="sc">{</span>raw_len<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb62-22"><a href="#cb62-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb62-23"><a href="#cb62-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Round-trip: decode(encode(text)) == text</span></span>
+<span id="cb62-24"><a href="#cb62-24" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> chunked_bpe_test.decode(chunked_bpe_test.encode(text)) <span class="op">==</span> text, <span class="st">"Round-trip failed"</span></span>
+<span id="cb62-25"><a href="#cb62-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb62-26"><a href="#cb62-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Merges never cross chunk boundaries: each encoded chunk independently decodes to its source chunk</span></span>
+<span id="cb62-27"><a href="#cb62-27" aria-hidden="true" tabindex="-1"></a>split_pattern <span class="op">=</span> chunked_bpe_test.split_pattern</span>
+<span id="cb62-28"><a href="#cb62-28" aria-hidden="true" tabindex="-1"></a>text_chunks <span class="op">=</span> re.findall(split_pattern, text)</span>
+<span id="cb62-29"><a href="#cb62-29" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> chunk_text, chunk_tokens <span class="kw">in</span> <span class="bu">zip</span>(text_chunks, chunked_bpe_test.encode(text)):</span>
+<span id="cb62-30"><a href="#cb62-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> chunked_bpe_test._decode_single(chunk_tokens) <span class="op">==</span> chunk_text, <span class="ss">f"Chunk round-trip failed for </span><span class="sc">{</span>chunk_text<span class="sc">!r}</span><span class="ss">"</span></span>
+<span id="cb62-31"><a href="#cb62-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb62-32"><a href="#cb62-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Encoding unseen text produces a valid, decodable token sequence</span></span>
+<span id="cb62-33"><a href="#cb62-33" aria-hidden="true" tabindex="-1"></a>unseen <span class="op">=</span> <span class="st">"Hello, world! This is a test."</span></span>
+<span id="cb62-34"><a href="#cb62-34" aria-hidden="true" tabindex="-1"></a>encoded_unseen <span class="op">=</span> chunked_bpe_test.encode(unseen)</span>
+<span id="cb62-35"><a href="#cb62-35" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">isinstance</span>(encoded_unseen, <span class="bu">list</span>)</span>
+<span id="cb62-36"><a href="#cb62-36" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">all</span>(<span class="bu">isinstance</span>(chunk, <span class="bu">list</span>) <span class="cf">for</span> chunk <span class="kw">in</span> encoded_unseen)</span>
+<span id="cb62-37"><a href="#cb62-37" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">all</span>(<span class="bu">isinstance</span>(t, <span class="bu">int</span>) <span class="cf">for</span> chunk <span class="kw">in</span> encoded_unseen <span class="cf">for</span> t <span class="kw">in</span> chunk)</span>
+<span id="cb62-38"><a href="#cb62-38" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> chunked_bpe_test.decode(encoded_unseen) <span class="op">==</span> unseen, <span class="st">"Unseen text round-trip failed"</span></span>
+<span id="cb62-39"><a href="#cb62-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb62-40"><a href="#cb62-40" aria-hidden="true" tabindex="-1"></a><span class="co"># Empty string encodes and decodes cleanly</span></span>
+<span id="cb62-41"><a href="#cb62-41" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> chunked_bpe_test.encode(<span class="st">""</span>) <span class="op">==</span> []</span>
+<span id="cb62-42"><a href="#cb62-42" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> chunked_bpe_test.decode([]) <span class="op">==</span> <span class="st">""</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>All ChunkedBPE tests passed.</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="full-bpe" class="level2">
+<h2 class="anchored" data-anchor-id="full-bpe">Full BPE</h2>
+<p>The final bit we will add is a list of special tokens. We use these for things like marking the end of a sequence of text, or for masking parts of text which is something we do in certain training routines. Some models like the AWD-LSTM also use special tokens to mark things like “the character after this is being repeated n times”.</p>
+<hr>
+<section id="bpe" class="level3">
+<h3 class="anchored" data-anchor-id="bpe">BPE</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb64"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> BPE(</span>
+<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a>    vocab_size:<span class="bu">int</span></span>
+<span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a>):</span>
+<span id="cb64-5"><a href="#cb64-5" aria-hidden="true" tabindex="-1"></a></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Initialize self. See help(type(self)) for accurate signature.</em></p>
+<div id="9a170e61" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb65"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> lorem.text()</span>
+<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb65-3"><a href="#cb65-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(text)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Velit dolor amet sit ut. Aliquam etincidunt dolorem aliquam velit dolorem aliquam. Etincidunt numquam magnam voluptatem porro non. Aliquam ut quisquam dolorem etincidunt labore. Quisquam ipsum est consectetur. Modi magnam tempora neque magnam ipsum. Non sit non labore velit. Est velit amet tempora modi amet modi quiquia. Porro etincidunt ipsum consectetur amet. Sed etincidunt etincidunt neque quiquia sit.
+
+Sit neque labore neque aliquam. Quiquia modi est quisquam velit aliquam. Sed quisquam magnam labore. Velit tempora sed dolore adipisci dolor quiquia sed. Aliquam dolor amet eius ut quisquam labore. Magnam quaerat aliquam quiquia dolor sed. Labore labore neque ut amet quaerat dolor. Labore magnam ipsum quisquam est eius consectetur adipisci.
+
+Non numquam magnam porro consectetur. Ut est sit neque dolorem quiquia. Sit non dolorem consectetur dolor amet. Dolore sit neque amet velit sed ipsum. Sit amet porro porro etincidunt etincidunt. Sit sit sit quisquam dolore. Numquam eius consectetur dolorem velit dolor. Velit non adipisci labore porro. Labore neque velit porro dolor quiquia amet amet. Magnam sit tempora non numquam modi.
+
+Amet dolor ipsum quisquam amet neque neque sed. Labore dolor voluptatem ut porro quisquam quaerat dolore. Modi numquam aliquam voluptatem consectetur. Dolor etincidunt dolore dolore ipsum sit eius labore. Etincidunt amet est dolorem quisquam porro est dolor. Quiquia porro amet numquam quisquam dolore. Quaerat dolor dolore sed quiquia tempora quiquia ipsum. Aliquam voluptatem adipisci amet aliquam quisquam ut quaerat.
+
+Ut quaerat modi quiquia quisquam. Non quisquam porro etincidunt. Non eius velit velit sed magnam. Neque amet sit aliquam dolore neque. Non neque dolorem ipsum quiquia dolor ipsum. Tempora labore magnam dolor ut labore. Porro consectetur ipsum eius neque consectetur est neque.
+
+Consectetur aliquam etincidunt magnam quiquia. Eius dolore voluptatem ipsum quaerat tempora ipsum. Ut dolore non numquam neque. Etincidunt non adipisci amet magnam numquam neque. Dolorem quaerat labore aliquam aliquam. Non quiquia voluptatem quisquam sed non.</code></pre>
+</div>
+</div>
+<div id="b3c77146" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb67"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a>bpe <span class="op">=</span> BPE(vocab_size<span class="op">=</span><span class="dv">300</span>)</span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a>bpe.train(text)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="a29e43b3" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb68"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a>encoded_text <span class="op">=</span> bpe.encode(text)</span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(encoded_text)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[86, 101, 267, 116], [265], [276], [272, 289], [32, 117, 116], [46], [32, 65, 282], [32, 261, 105, 110, 273, 100, 117, 110, 116], [265, 270], [280, 282], [283, 101, 267, 116], [265, 270], [280, 282], [46], [32, 69, 116, 105, 110, 273, 100, 117, 110, 116], [266, 271, 262], [284, 97, 103, 110, 258], [283, 259, 117, 112, 116, 290, 270], [32, 277, 114, 111], [266, 269], [46], [32, 65, 282], [32, 117, 116], [291], [265, 270], [32, 261, 105, 110, 273, 100, 117, 110, 116], [32, 108, 288], [46], [32, 81, 117, 105, 285], [32, 274, 115, 271], [32, 101, 115, 116], [32, 99, 269, 115, 101, 99, 116, 261, 117, 114], [46], [32, 77, 111, 100, 105], [284, 97, 103, 110, 258], [32, 116, 270, 277, 97], [281], [284, 97, 103, 110, 258], [32, 274, 115, 271], [46], [32, 78, 269], [272, 289], [266, 269], [32, 108, 288], [283, 101, 267, 116], [46], [32, 69, 115, 116], [283, 101, 267, 116], [276], [32, 116, 270, 277, 97], [284, 111, 100, 105], [276], [284, 111, 100, 105], [268, 260, 97], [46], [32, 80, 257, 114, 111], [32, 261, 105, 110, 273, 100, 117, 110, 116], [32, 274, 115, 271], [32, 99, 269, 115, 101, 99, 116, 261, 117, 114], [276], [46], [32, 83, 101, 100], [32, 261, 105, 110, 273, 100, 117, 110, 116], [32, 261, 105, 110, 273, 100, 117, 110, 116], [281], [268, 260, 97], [272, 289], [46, 10, 10], [83, 289], [281], [32, 108, 288], [281], [280, 282], [46], [32, 81, 117, 105, 260, 97], [284, 111, 100, 105], [32, 101, 115, 116], [291], [283, 101, 267, 116], [280, 282], [46], [32, 83, 101, 100], [291], [284, 97, 103, 110, 258], [32, 108, 288], [46], [32, 86, 101, 267, 116], [32, 116, 270, 277, 97], [272, 101, 100], [265, 101], [280, 100, 274, 105, 115, 273], [265], [268, 260, 97], [272, 101, 100], [46], [32, 65, 282], [265], [276], [32, 101, 105, 117, 115], [32, 117, 116], [291], [32, 108, 288], [46], [32, 77, 97, 103, 110, 258], [32, 256, 97, 101, 114, 290], [280, 282], [268, 260, 97], [265], [272, 101, 100], [46], [32, 76, 288], [32, 108, 288], [281], [32, 117, 116], [276], [32, 256, 97, 101, 114, 290], [265], [46], [32, 76, 288], [284, 97, 103, 110, 258], [32, 274, 115, 271], [291], [32, 101, 115, 116], [32, 101, 105, 117, 115], [32, 99, 269, 115, 101, 99, 116, 261, 117, 114], [280, 100, 274, 105, 115, 273], [46, 10, 10], [78, 269], [266, 271, 262], [284, 97, 103, 110, 258], [32, 277, 114, 111], [32, 99, 269, 115, 101, 99, 116, 261, 117, 114], [46], [32, 85, 116], [32, 101, 115, 116], [272, 289], [281], [265, 270], [268, 260, 97], [46], [32, 83, 289], [266, 269], [265, 270], [32, 99, 269, 115, 101, 99, 116, 261, 117, 114], [265], [276], [46], [32, 68, 263, 101], [272, 289], [281], [276], [283, 101, 267, 116], [272, 101, 100], [32, 274, 115, 271], [46], [32, 83, 289], [276], [32, 277, 114, 111], [32, 277, 114, 111], [32, 261, 105, 110, 273, 100, 117, 110, 116], [32, 261, 105, 110, 273, 100, 117, 110, 116], [46], [32, 83, 289], [272, 289], [272, 289], [291], [265, 101], [46], [32, 78, 271, 262], [32, 101, 105, 117, 115], [32, 99, 269, 115, 101, 99, 116, 261, 117, 114], [265, 270], [283, 101, 267, 116], [265], [46], [32, 86, 101, 267, 116], [266, 269], [280, 100, 274, 105, 115, 273], [32, 108, 288], [32, 277, 114, 111], [46], [32, 76, 288], [281], [283, 101, 267, 116], [32, 277, 114, 111], [265], [268, 260, 97], [276], [276], [46], [32, 77, 97, 103, 110, 258], [272, 289], [32, 116, 270, 277, 97], [266, 269], [266, 271, 262], [284, 111, 100, 105], [46, 10, 10], [65, 109, 261], [265], [32, 274, 115, 271], [291], [276], [281], [281], [272, 101, 100], [46], [32, 76, 288], [265], [283, 259, 117, 112, 116, 290, 270], [32, 117, 116], [32, 277, 114, 111], [291], [32, 256, 97, 101, 114, 290], [265, 101], [46], [32, 77, 111, 100, 105], [266, 271, 262], [280, 282], [283, 259, 117, 112, 116, 290, 270], [32, 99, 269, 115, 101, 99, 116, 261, 117, 114], [46], [32, 68, 263], [32, 261, 105, 110, 273, 100, 117, 110, 116], [265, 101], [265, 101], [32, 274, 115, 271], [272, 289], [32, 101, 105, 117, 115], [32, 108, 288], [46], [32, 69, 116, 105, 110, 273, 100, 117, 110, 116], [276], [32, 101, 115, 116], [265, 270], [291], [32, 277, 114, 111], [32, 101, 115, 116], [265], [46], [32, 81, 117, 105, 260, 97], [32, 277, 114, 111], [276], [266, 271, 262], [291], [265, 101], [46], [32, 81, 117, 97, 101, 114, 290], [265], [265, 101], [272, 101, 100], [268, 260, 97], [32, 116, 270, 277, 97], [268, 260, 97], [32, 274, 115, 271], [46], [32, 65, 282], [283, 259, 117, 112, 116, 290, 270], [280, 100, 274, 105, 115, 273], [276], [280, 282], [291], [32, 117, 116], [32, 256, 97, 101, 114, 290], [46, 10, 10], [85, 116], [32, 256, 97, 101, 114, 290], [284, 111, 100, 105], [268, 260, 97], [291], [46], [32, 78, 269], [291], [32, 277, 114, 111], [32, 261, 105, 110, 273, 100, 117, 110, 116], [46], [32, 78, 269], [32, 101, 105, 117, 115], [283, 101, 267, 116], [283, 101, 267, 116], [272, 101, 100], [284, 97, 103, 110, 258], [46], [32, 78, 279], [276], [272, 289], [280, 282], [265, 101], [281], [46], [32, 78, 269], [281], [265, 270], [32, 274, 115, 271], [268, 260, 97], [265], [32, 274, 115, 271], [46], [32, 84, 270, 277, 97], [32, 108, 288], [284, 97, 103, 110, 258], [265], [32, 117, 116], [32, 108, 288], [46], [32, 80, 257, 114, 111], [32, 99, 269, 115, 101, 99, 116, 261, 117, 114], [32, 274, 115, 271], [32, 101, 105, 117, 115], [281], [32, 99, 269, 115, 101, 99, 116, 261, 117, 114], [32, 101, 115, 116], [281], [46, 10, 10], [67, 269, 115, 101, 99, 116, 261, 117, 114], [280, 282], [32, 261, 105, 110, 273, 100, 117, 110, 116], [284, 97, 103, 110, 258], [268, 260, 97], [46], [32, 69, 105, 117, 115], [265, 101], [283, 259, 117, 112, 116, 290, 270], [32, 274, 115, 271], [32, 256, 97, 101, 114, 290], [32, 116, 270, 277, 97], [32, 274, 115, 271], [46], [32, 85, 116], [265, 101], [266, 269], [266, 271, 262], [281], [46], [32, 69, 116, 105, 110, 273, 100, 117, 110, 116], [266, 269], [280, 100, 274, 105, 115, 273], [276], [284, 97, 103, 110, 258], [266, 271, 262], [281], [46], [32, 68, 263, 270], [32, 256, 97, 101, 114, 290], [32, 108, 288], [280, 282], [280, 282], [46], [32, 78, 269], [268, 260, 97], [283, 259, 117, 112, 116, 290, 270], [291], [272, 101, 100], [266, 269], [46]]</code></pre>
+</div>
+</div>
+<div id="28ea6c03" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb70"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a>decoded_text <span class="op">=</span> bpe.decode(encoded_text)</span>
+<span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(decoded_text)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Velit dolor amet sit ut. Aliquam etincidunt dolorem aliquam velit dolorem aliquam. Etincidunt numquam magnam voluptatem porro non. Aliquam ut quisquam dolorem etincidunt labore. Quisquam ipsum est consectetur. Modi magnam tempora neque magnam ipsum. Non sit non labore velit. Est velit amet tempora modi amet modi quiquia. Porro etincidunt ipsum consectetur amet. Sed etincidunt etincidunt neque quiquia sit.
+
+Sit neque labore neque aliquam. Quiquia modi est quisquam velit aliquam. Sed quisquam magnam labore. Velit tempora sed dolore adipisci dolor quiquia sed. Aliquam dolor amet eius ut quisquam labore. Magnam quaerat aliquam quiquia dolor sed. Labore labore neque ut amet quaerat dolor. Labore magnam ipsum quisquam est eius consectetur adipisci.
+
+Non numquam magnam porro consectetur. Ut est sit neque dolorem quiquia. Sit non dolorem consectetur dolor amet. Dolore sit neque amet velit sed ipsum. Sit amet porro porro etincidunt etincidunt. Sit sit sit quisquam dolore. Numquam eius consectetur dolorem velit dolor. Velit non adipisci labore porro. Labore neque velit porro dolor quiquia amet amet. Magnam sit tempora non numquam modi.
+
+Amet dolor ipsum quisquam amet neque neque sed. Labore dolor voluptatem ut porro quisquam quaerat dolore. Modi numquam aliquam voluptatem consectetur. Dolor etincidunt dolore dolore ipsum sit eius labore. Etincidunt amet est dolorem quisquam porro est dolor. Quiquia porro amet numquam quisquam dolore. Quaerat dolor dolore sed quiquia tempora quiquia ipsum. Aliquam voluptatem adipisci amet aliquam quisquam ut quaerat.
+
+Ut quaerat modi quiquia quisquam. Non quisquam porro etincidunt. Non eius velit velit sed magnam. Neque amet sit aliquam dolore neque. Non neque dolorem ipsum quiquia dolor ipsum. Tempora labore magnam dolor ut labore. Porro consectetur ipsum eius neque consectetur est neque.
+
+Consectetur aliquam etincidunt magnam quiquia. Eius dolore voluptatem ipsum quaerat tempora ipsum. Ut dolore non numquam neque. Etincidunt non adipisci amet magnam numquam neque. Dolorem quaerat labore aliquam aliquam. Non quiquia voluptatem quisquam sed non.</code></pre>
+</div>
+</div>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
